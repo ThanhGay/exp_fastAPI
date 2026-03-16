@@ -10,6 +10,12 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     pass
 
+class ProductUpdate(ProductCreate):
+    id: int
+
+class ProductDelete(BaseModel):
+    id: int
+
 class ProductView(ProductCreate):
     id: int
     model_config = {

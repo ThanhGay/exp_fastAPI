@@ -1,13 +1,18 @@
 from pydantic import BaseModel
 
-class CategoryModel(BaseModel):
+class CategoryView(BaseModel):
     id: int
     name: str
     description: str | None = None
+    parent_id: int | None = None
 
-class SubCategoryModel(CategoryModel):
-    parent_id: int
-
-class CreateCategoryModel(BaseModel):
+class CategoryCreate(BaseModel):
     name: str
     description: str | None = None
+    parent_id: int | None = None
+
+class CategoryUpdate(CategoryCreate):
+    id: int
+
+class CategoryDelete(BaseModel):
+    id: int

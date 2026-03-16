@@ -20,7 +20,7 @@ class Settings:
     MARIADB_DATABASE: str = os.getenv("MARIADB_DATABASE", "ecommerce")
     
     # Token config
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "5"))
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
     ALGORITHM = os.getenv("ALGORITHM")      
     SECRET_KEY :str = os.getenv("SECRET_KEY")
 

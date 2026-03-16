@@ -1,0 +1,86 @@
+from app.schemas.catalog.category import CategoryCreate, CategoryUpdate
+from app.models.prod.models import Category
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, exists
+from datetime import datetime, timezone
+
+# CREATE
+def create(db: Session, req: CategoryCreate, user_id: int) -> Category:
+    new_category = Category(
+        name=req.name,
+        description=req.description,
+        parent_id=req.parent_id,
+        created_by=user_id
+    )
+
+    db.add(new_category)
+    db.commit()
+    db.refresh(new_category)
+    
+    return new_category
+
+# READ - many
+def get_categories(db: Session):
+    res = db.query(Category).where(Category.is_deleted != True)
+    print(f"query: {res}")
+    return res.all()    
+
+# READ - one by id
+def get_category_by_id(db: Session, id: int) -> Category:
+    return db.query(Category).filter(Category.id == id).first()
+
+# UPDATE
+def update_category(db: Session, req: CategoryUpdate, user_id: int) -> Category:
+    category = get_category_by_id(db=db, id=req.id)
+    
+    if not category:
+        return None
+        
+    category.name = req.name
+    category.description = req.description
+    category.parent_id = req.parent_id
+
+    category.modified_at = datetime.now(tz=timezone.utc)
+    category.modified_by = user_id
+
+    db.commit()
+    db.refresh(category)
+
+    return category
+
+# DELETE - soft delete
+def delete(db: Session, id:int, user_id: int) -> bool:
+    category = get_category_by_id(db=db,id=id)
+
+    if not category:
+        return False
+    
+    category.is_deleted = True
+    category.deleted_at = datetime.now(tz=timezone.utc)
+    category.deleted_by= user_id
+
+    db.commit()
+    db.refresh(category)
+
+    return True
+
+# DELETE - permanent delete
+def remove(db: Session, id: int) -> bool:
+    category = get_category_by_id(db=db,id=id)
+
+    if not category:
+        return False
+    
+    db.delete(category);
+    db.commit()
+
+    return True
+
+def exist_id(db:Session, id: int) -> bool:
+    return db.query(exists().where(Category.id == id)).scalar()
+
+def exist_name(db:Session, name: str) -> bool:
+    return db.query(exists().where(Category.name == name)).scalar()
+
+def exist_name_exclude_id(db: Session, id: int, name: str ):
+    return db.query(exists().where(and_(Category.name == name, Category.id != id))).scalar()

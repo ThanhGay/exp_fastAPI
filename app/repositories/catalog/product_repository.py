@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 def get_multi(db: Session):
-    res = db.query(Product)
+    res = db.query(Product).where(Product.is_deleted != True)
     print(f"query: {res}")
     return res.all()
 
