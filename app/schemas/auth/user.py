@@ -15,6 +15,8 @@ class UserCreate(BaseModel):
     username: str = Field(..., min_length=5, max_length=255)
     email: EmailStr
     password: str = Field(..., min_length=6)
+    first_name: str = Field(...)
+    last_name: str = Field(...)
 
     @field_validator("password")
     def validate_password(cls, v):
@@ -41,5 +43,6 @@ class UserView(BaseModel):
     id: int
     username: str
     email: str
+    fullname: str
 
     model_config = ConfigDict(from_attributes=True)

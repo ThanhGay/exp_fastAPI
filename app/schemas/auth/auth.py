@@ -8,6 +8,7 @@ class AuthLogin(BaseModel):
 class AuthResponse(BaseModel):
     username: str
     email: str
+    fullname: str
     access_token: str
     refesh_token: str
 

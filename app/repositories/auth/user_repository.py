@@ -17,7 +17,9 @@ def create(db: Session, user_in: UserCreate) -> User:
         username=user_in.username,
         email=user_in.email,
         password=user_in.password,
-        status=AuthStatus.IDLE.value
+        status=AuthStatus.IDLE.value,
+        first_name=user_in.first_name,
+        last_name=user_in.last_name
     )
     
     db.add(new_user)

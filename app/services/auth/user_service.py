@@ -52,6 +52,7 @@ def login(db: Session, req: AuthLogin) -> AuthResponse:
     res = AuthResponse(
         email=user.email,
         username=user.username,
+        fullname= user.first_name + " " + user.last_name,
         access_token=access_token,
         refesh_token="..."
     )
