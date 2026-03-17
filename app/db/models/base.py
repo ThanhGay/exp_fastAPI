@@ -2,7 +2,7 @@
 from sqlalchemy import MetaData, Column, Integer, DateTime, Boolean, func
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase
-from app.models.db_schema import DbSchema
+from app.db.models.db_schema import DbSchema
 
 class TablenameMixin:
     @declared_attr

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.core.database import engine
 from app.api.v1.router import router as api_v1_router
-from app.models.base import BaseAuth, BaseProd
+from app.db.models.base import BaseAuth, BaseProd
 
 
 def create_tables():

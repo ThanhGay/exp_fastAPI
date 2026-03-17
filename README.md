@@ -31,3 +31,4 @@ Apply migration into database
 python -m alembic upgrade head
 ```
 # exp_fastAPI
+route -> service -> repository
