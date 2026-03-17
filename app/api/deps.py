@@ -6,10 +6,11 @@ from fastapi.security import OAuth2PasswordBearer
 
 from app.core.database import get_db
 from app.core.security import decode_token
-from app.db.models.auth.models import User
+from app.db.models.auth import User
 from app.db.repositories.auth import user_repository as repo
 
 security = HTTPBearer(auto_error=False)
+
 
 def get_current_user_id(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
@@ -20,7 +21,7 @@ def get_current_user_id(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     token = credentials.credentials
     payload = decode_token(token)
 
@@ -33,7 +34,7 @@ def get_current_user_id(
     return int(payload["sub"])
 
 
-'''
+"""
 ================= Use OAuth2 =================
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login") 
@@ -44,7 +45,9 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
         raise HTTPException(status_code=401, detail="Invalid token")
     return int(payload["sub"])
 
-'''
+"""
+
+
 def get_current_user(
     db: Session = Depends(get_db),
     user_id: int | None = Depends(get_current_user_id),
@@ -62,3 +65,15 @@ def get_current_user(
             detail="User not found",
         )
     return user
+
+
+def require_permission(code: str):
+    def dep(
+        current_user: User = Depends(get_current_user),
+    ):
+        user_perms = {p.code for r in current_user.roles for p in r.permissions}
+        if code not in user_perms:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        return current_user
+
+    return dep

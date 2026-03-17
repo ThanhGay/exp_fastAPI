@@ -61,19 +61,3 @@ class UserView(BaseModel):
     fullname: str
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class ChangePassword(BaseModel):
-    password: str
-
-    @field_validator("password")
-    def validate_password(cls, v):
-
-        regex = r"^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"
-
-        if not re.match(regex, v):
-            raise ValueError(
-                "Password must contain uppercase, number, special character and be at least 8 characters"
-            )
-
-        return v

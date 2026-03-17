@@ -1,5 +1,5 @@
 from app.schemas.catalog.product import ProductCreate, ProductUpdate, ProductView
-from app.db.models.prod.models import Product, Category
+from app.db.models.prod import Product, Category
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime, timezone

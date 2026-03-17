@@ -17,9 +17,9 @@ if config.config_file_name is not None:
 
 from app.core.config import settings
 from app.core.database import engine
-from app.models.base import BaseAuth, BaseProd
-from app.models.auth import models as auth_models
-from app.models.prod import models as prod_models
+from app.db.models.base import BaseAuth, BaseProd
+from app.db.models import auth as auth_models
+from app.db.models import prod as prod_models
 
 
 # add your model's MetaData object here

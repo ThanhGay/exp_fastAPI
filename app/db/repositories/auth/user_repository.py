@@ -1,6 +1,6 @@
 from app.schemas.auth.user import UserCreate
 from app.schemas.auth.auth import AuthStatus
-from app.db.models.auth.models import User
+from app.db.models.auth import User
 from sqlalchemy.orm import Session
 from sqlalchemy import exists, select
 
