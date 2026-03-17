@@ -6,8 +6,8 @@ from sqlalchemy.orm import relationship
 UserRole = Table(
     "UserRole",
     BaseAuth.metadata,
-    Column("user_id", ForeignKey("Role.id"), primary_key=True),
-    Column("role_id", ForeignKey("User.id"), primary_key=True),
+    Column("user_id", ForeignKey("User.id"), primary_key=True),
+    Column("role_id", ForeignKey("Role.id"), primary_key=True),
 )
 
 
@@ -31,7 +31,7 @@ class User(BaseAuth):
     password = Column(Text)
     status = Column(Integer)
 
-    roles = relationship("Role", secondary=UserRole, back_populates="roles")
+    roles = relationship("Role", secondary=UserRole, back_populates="users")
 
     @property
     def fullname(self) -> str:
@@ -47,16 +47,16 @@ class Role(BaseAuth):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)
 
-    users = relationship("User", secondary=UserRole, back_populates="users")
+    users = relationship("User", secondary=UserRole, back_populates="roles")
     permissions = relationship(
-        "Permission", secondary=RolePermisison, back_populates="permissions"
+        "Permission", secondary=RolePermisison, back_populates="roles"
     )
 
 
-class Permision(BaseAuth):
+class Permission(BaseAuth):
     __tablename__ = "Permission"
     id = Column(Integer, primary_key=True)
     code = Column(String(150), unique=True, nullable=False)
     description = Column(Text)
 
-    roles = relationship("Role", secondary=RolePermisison, back_populates="roles")
+    roles = relationship("Role", secondary=RolePermisison, back_populates="permissions")
