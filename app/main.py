@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.core.database import engine
 from app.api.v1.router import router as api_v1_router
-from app.db.models.base import BaseAuth, BaseProd
+from app.db.models.base import BaseAuth, BaseProd, BaseOrd
 from app.middleware import RequestLoggingMiddleware, CORSMiddleware
 import logging
 
@@ -10,6 +10,7 @@ import logging
 def create_tables():
     BaseAuth.metadata.create_all(bind=engine)
     BaseProd.metadata.create_all(bind=engine)
+    BaseOrd.metadata.create_all(bind=engine)
 
 
 def include_router(app):

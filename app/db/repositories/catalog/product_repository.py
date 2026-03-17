@@ -1,17 +1,21 @@
 from app.schemas.catalog.product import ProductCreate, ProductUpdate, ProductView
 from app.db.models.prod import Product, Category
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, exists, and_
 from datetime import datetime, timezone
 
 
 def get_multi(db: Session):
     res = db.query(Product).where(Product.is_deleted != True)
-    
+
     return res.all()
 
+
 def get_by_id(db: Session, id: int) -> Product | None:
-    return db.query(Product).filter(Product.id == id, Product.is_deleted != True).first()
+    return (
+        db.query(Product).filter(Product.id == id, Product.is_deleted != True).first()
+    )
+
 
 def get_by_id_with_category_name(db: Session, id: int) -> Product | None:
     return (
@@ -20,6 +24,7 @@ def get_by_id_with_category_name(db: Session, id: int) -> Product | None:
         .filter(Product.id == id, Product.is_deleted != True)
         .first()
     )
+
 
 def get_by_category_id_with_category_name(db: Session, category_id: int):
     return (
@@ -92,3 +97,9 @@ def remove_product(db: Session, id: int) -> bool:
     db.commit()
 
     return True
+
+
+def exist_product_id(db: Session, id: int) -> bool:
+    return db.query(
+        exists().where(and_(Product.id == id, Product.is_deleted != True))
+    ).scalar()
