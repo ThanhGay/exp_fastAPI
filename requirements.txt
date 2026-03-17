@@ -1,8 +1,20 @@
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
+
+# Auth & security
 passlib[bcrypt]==1.7.4
 PyJWT==2.10.1
+
+# Web / form handling
 python-multipart==0.0.17
+
+# ORM & DB
+SQLAlchemy==2.0.36
+PyMySQL==1.1.1
+alembic==1.14.0
+
+# Env config
+python-dotenv==1.0.1
+
+# Optional (you can remove if không dùng)
 pydantic-settings==2.6.1
-sqlalchemy==2.0.36
-pymysql==1.1.1

@@ -5,9 +5,15 @@ A minimal FastAPI project to learn **authentication** (login/logout) and **prote
 ## Setup
 
 ```bash
-cd /home/thanhpd/projects/test_fastAPI
-python -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
+git clone 
+
+# create virtural environment to run fastAPI
+python -m venv venv 
+
+# active venv
+source venv/bin/activate
+
+# install requirement package
 pip install -r requirements.txt
 ```
 
