@@ -1,4 +1,4 @@
-from app.models.base import BaseProd
+from app.db.models.base import BaseProd
 from sqlalchemy import Column, Integer, String, Float, Text
 
 class Product(BaseProd):

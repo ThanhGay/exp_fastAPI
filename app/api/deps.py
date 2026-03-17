@@ -6,8 +6,8 @@ from fastapi.security import OAuth2PasswordBearer
 
 from app.core.database import get_db
 from app.core.security import decode_token
-from app.models.auth.models import User
-from app.repositories.auth import user_repository as repo
+from app.db.models.auth.models import User
+from app.db.repositories.auth import user_repository as repo
 
 security = HTTPBearer(auto_error=False)
 

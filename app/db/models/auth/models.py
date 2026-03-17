@@ -1,4 +1,4 @@
-from app.models.base import BaseAuth
+from app.db.models.base import BaseAuth
 from sqlalchemy import Column, Integer, String, Float, Text
 
 class User(BaseAuth):

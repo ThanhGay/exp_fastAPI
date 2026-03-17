@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session 
-from app.repositories.catalog import category_repository as repo
+from app.db.repositories.catalog import category_repository as repo
 from app.schemas.catalog.category import CategoryCreate, CategoryUpdate, CategoryDelete
 
 

@@ -5,6 +5,7 @@ class ProductBase(BaseModel):
     description: str | None = Field(None, max_length=2000)
     price: float = Field(..., gt=0)
     stock: int = Field(..., ge=0)
+    category_id: int | None = Field(None)
 
 
 class ProductCreate(ProductBase):
@@ -18,6 +19,7 @@ class ProductDelete(BaseModel):
 
 class ProductView(ProductCreate):
     id: int
+    category_name: str | None = None
     model_config = {
         "from_attributes": True
     }

@@ -1,5 +1,5 @@
 from app.schemas.catalog.category import CategoryCreate, CategoryUpdate
-from app.models.prod.models import Category
+from app.db.models.prod.models import Category
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, exists
 from datetime import datetime, timezone

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.repositories.catalog import product_repository as repo
+from app.db.repositories.catalog import product_repository as repo
 from app.schemas.catalog.product import ProductCreate 
 
 def get_all_products(db: Session):
