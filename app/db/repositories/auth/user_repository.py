@@ -1,12 +1,12 @@
 from app.schemas.auth.user import UserCreate
 from app.schemas.auth.auth import AuthStatus
-from app.models.auth.models import User
+from app.db.models.auth.models import User
 from sqlalchemy.orm import Session
 from sqlalchemy import exists, select
 
 def get_multi(db: Session):
     res = db.query(User)
-    print(f"query: {res}")
+    
     return res.all()
 
 def get_by_id(db: Session, user_id: int) -> User:
@@ -34,3 +34,15 @@ def exists_email(db: Session, email_check: str) -> bool:
 def get_by_email(db: Session, email: str) -> User | None:
     user = db.query(User).filter(User.email == email).first()
     return user
+
+def update_password(db: Session, id: int, new_pwd: str) -> bool:
+    user = get_by_id(db=db, user_id=id)
+    if not user:
+        return False
+    
+    user.password = new_pwd
+
+    db.commit()
+    db.refresh(user)
+
+    return True

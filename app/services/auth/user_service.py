@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException, status
 
 from app.core.security import create_access_token
-from app.repositories.auth import user_repository as repo
+from app.db.repositories.auth import user_repository as repo
 from app.schemas.auth.user import UserCreate
 from app.schemas.auth.auth import AuthLogin, AuthResponse, AuthStatus
 from app.utils.password import encode_password, verify_password
@@ -73,3 +73,13 @@ def logout(db:Session, user_id: int):
     db.refresh(user)
 
     return { "message": "Logged out success" }
+
+def change_password(db: Session, user_id: int, new_password):
+    new_hashed_pwd = encode_password(new_password)
+
+    result = repo.update_password(db=db, id=user_id, new_pwd=new_hashed_pwd)
+
+    if result:
+        return { "message": "Your password changed success" }
+    
+    return {  "message": "Your password changed failure" }
