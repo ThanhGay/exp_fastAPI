@@ -6,17 +6,22 @@ from app.schemas.order.cart import CartItemView, CartItemCreate, CartItemDelete
 
 
 def get_my_cart(db: Session, user_id: int):
-    results = cart_repo.get_cart_by_user_id(db=db, user_id=user_id)
+    cart_items = cart_repo.get_cart_by_user_id(db=db, user_id=user_id)
+
+    product_ids = {item.product_id for item in cart_items}
+    products = prod_repo.get_by_ids(db=db, ids=list(product_ids))
+    products_map = {p.id: p for p in products}
 
     return [
         CartItemView(
-            id=cart_item.id,
-            product_id=cart_item.product_id,
-            price_per_unit=prod_price,
-            product_name=prod_name,
-            count=cart_item.count,
+            id=item.id,
+            product_id=item.product_id,
+            price_per_unit=products_map[item.product_id].price,
+            product_name=products_map[item.product_id].name,
+            count=item.count,
         )
-        for cart_item, prod_name, prod_price in results
+        for item in cart_items
+        if item.product_id in products_map
     ]
 
 

@@ -17,6 +17,17 @@ def get_by_id(db: Session, id: int) -> Product | None:
     )
 
 
+def get_by_ids(db: Session, ids: list[int]) -> list[Product]:
+    if not ids:
+        return []
+
+    return (
+        db.query(Product)
+        .filter(Product.id.in_(ids), Product.is_deleted != True)
+        .all()
+    )
+
+
 def get_by_id_with_category_name(db: Session, id: int) -> Product | None:
     return (
         db.query(Product, Category.name.label("category_name"))

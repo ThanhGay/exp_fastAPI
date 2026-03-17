@@ -1,21 +1,11 @@
 from app.schemas.order.cart import CartItemCreate
 from app.db.models.order import Cart
-from app.db.models.prod import Product
 from sqlalchemy.orm import Session
-from sqlalchemy import select, exists, and_
 from datetime import datetime, timezone
 
 
 def get_cart_by_user_id(db: Session, user_id: int):
-    res = (
-        db.query(
-            Cart, Product.name.label("prod_name"), Product.price.label("prod_price")
-        )
-        .outerjoin(Product, Cart.product_id == Product.id)
-        .filter(Cart.is_deleted != True, Cart.user_id == user_id)
-    )
-
-    return res.all()
+    return db.query(Cart).filter(Cart.is_deleted != True, Cart.user_id == user_id).all()
 
 
 def get_by_id(db: Session, id: int) -> Cart | None:
