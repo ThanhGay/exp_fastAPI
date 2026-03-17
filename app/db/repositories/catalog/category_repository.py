@@ -24,7 +24,7 @@ def create(db: Session, req: CategoryCreate, user_id: int) -> Category:
 # READ - many
 def get_categories(db: Session):
     res = db.query(Category).where(Category.is_deleted != True)
-    print(f"query: {res}")
+    
     return res.all()
 
 

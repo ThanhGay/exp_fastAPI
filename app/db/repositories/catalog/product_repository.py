@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 def get_multi(db: Session):
     res = db.query(Product).where(Product.is_deleted != True)
-    print(f"query: {res}")
+    
     return res.all()
 
 def get_by_id(db: Session, id: int) -> Product | None:

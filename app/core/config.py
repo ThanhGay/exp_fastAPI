@@ -24,6 +24,8 @@ class Settings:
     ALGORITHM = os.getenv("ALGORITHM")      
     SECRET_KEY :str = os.getenv("SECRET_KEY")
 
+    CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(", ")
+
     @property
     def database_url(self) -> str:
         return (
