@@ -1,5 +1,5 @@
-from app.schemas.order.cart import CartItemCreate
-from app.db.models.order import Cart
+from app.schemas.ord.cart import CartItemCreate
+from app.db.models.ord import Cart
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 

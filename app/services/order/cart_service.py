@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.repositories.order import cart_repository as cart_repo
 from app.db.repositories.catalog import product_repository as prod_repo
-from app.schemas.order.cart import CartItemView, CartItemCreate, CartItemDelete
+from app.schemas.ord.cart import CartItemView, CartItemCreate, CartItemDelete
 
 
 def get_my_cart(db: Session, user_id: int):

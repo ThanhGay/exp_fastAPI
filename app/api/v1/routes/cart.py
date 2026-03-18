@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user_id
 from app.services.order import cart_service
-from app.schemas.order.cart import CartItemView, CartItemCreate, CartItemDelete
+from app.schemas.ord.cart import CartItemView, CartItemCreate, CartItemDelete
 
 router = APIRouter(prefix="", tags=["cart"])
 

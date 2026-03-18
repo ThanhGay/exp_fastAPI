@@ -1,0 +1,269 @@
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.db.repositories.order import order_repository as order_repo
+from app.db.repositories.order import cart_repository as cart_repo
+from app.db.repositories.catalog import product_repository as prod_repo
+from app.schemas.ord.order import (
+    OrderCreateFromCart,
+    OrderStatusEnum,
+    OrderCreate,
+    OrderItemCreate,
+    OrderView,
+    OrderItemView,
+    OrderCreateDirect,
+    OrderStatus,
+)
+
+
+def create_order_from_cart(db: Session, user_id: int, req: OrderCreateFromCart):
+    """
+    Create an order from selected cart item ids.
+    """
+    # Lọc các cart item hợp lệ theo user và id
+    valid_cart_items = []
+    for cart_id in req.item_ids:
+        cart_item = cart_repo.get_by_id(db=db, id=cart_id)
+        if not cart_item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Not found cart item with id {cart_id} or it be deleted",
+            )
+        if cart_item.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission on one of cart items",
+            )
+        valid_cart_items.append(cart_item)
+
+    if not valid_cart_items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No valid cart items to create order",
+        )
+
+    # Lấy thông tin product để tính giá tại thời điểm tạo đơn
+    product_ids = {item.product_id for item in valid_cart_items}
+    products = prod_repo.get_by_ids(db=db, ids=list(product_ids))
+    products_map = {p.id: p for p in products}
+
+    missing_products = [pid for pid in product_ids if pid not in products_map]
+    if missing_products:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Some products not found: {missing_products}",
+        )
+
+    # Tạo order (trạng thái mặc định IDLE)
+    order_req = OrderCreate(
+        user_id=user_id,
+        status=OrderStatusEnum.IDLE.value,
+        note=None,
+    )
+    order = order_repo.create_order(db=db, req=order_req, user_id=user_id)
+
+    # Tạo order items từ cart items
+    order_items: list[OrderItemView] = []
+    total_price = 0.0
+    for cart_item in valid_cart_items:
+        product = products_map[cart_item.product_id]
+        order_item_req = OrderItemCreate(
+            order_id=order.id,
+            prod_id=product.id,
+            price_per_unit=product.price,
+            count=cart_item.count,
+        )
+        created_item = order_repo.create_order_item(
+            db=db, item=order_item_req, user_id=user_id
+        )
+        cart_repo.delete_cart_item(db=db, id=cart_item.id, user_id=user_id)
+
+        item_view = OrderItemView(
+            id=created_item.id,
+            prod_id=product.id,
+            prod_name=product.name,
+            price_per_unit=created_item.price,
+            count=created_item.count,
+        )
+        order_items.append(item_view)
+        total_price += created_item.price * created_item.count
+
+    return OrderView(
+        ord_id=order.id,
+        user_id=order.user_id,
+        status=order.status,
+        status_str=OrderStatus[order.status],
+        note=order.note,
+        total_price=total_price,
+        items=order_items,
+    )
+
+
+def create_order_direct(db: Session, user_id: int, req: OrderCreateDirect):
+    valid_prod = prod_repo.get_by_id(db=db, id=req.item.prod_id)
+
+    if not valid_prod:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Not found product_id: {req.item.prod_id}",
+        )
+
+    # Tạo order
+    order_req = OrderCreate(
+        user_id=user_id,
+        status=OrderStatusEnum.IDLE.value,
+        note=req.note,
+    )
+    order = order_repo.create_order(db=db, req=order_req, user_id=user_id)
+
+    order_item_req = OrderItemCreate(
+        order_id=order.id,
+        prod_id=req.item.prod_id,
+        price_per_unit=valid_prod.price,
+        count=req.item.count,
+    )
+
+    created_item = order_repo.create_order_item(
+        db=db, item=order_item_req, user_id=user_id
+    )
+
+    order_items: list[OrderItemView] = []
+    total_price = 0.0
+
+    item_view = OrderItemView(
+        id=created_item.id,
+        prod_id=created_item.product_id,
+        prod_name=valid_prod.name,
+        price_per_unit=created_item.price,
+        count=created_item.count,
+    )
+    order_items.append(item_view)
+    total_price += created_item.price * created_item.count
+
+    return OrderView(
+        ord_id=order.id,
+        user_id=order.user_id,
+        status=order.status,
+        status_str=OrderStatus[order.status],
+        note=order.note,
+        total_price=total_price,
+        items=order_items,
+    )
+
+
+def get_my_orders(db: Session, user_id: int) -> list[OrderView]:
+    """
+    Lấy tất cả đơn hàng của user hiện tại.
+    """
+    orders = order_repo.get_orders_by_user(db=db, user_id=user_id)
+    if not orders:
+        return []
+
+    # Lấy tất cả order_id và items tương ứng
+    order_ids = [o.id for o in orders]
+    all_items = []
+    for oid in order_ids:
+        all_items.extend(order_repo.get_items_by_order_id(db=db, order_id=oid))
+
+    # Lấy thông tin sản phẩm để map tên + giá
+    product_ids = {item.product_id for item in all_items}
+    products = prod_repo.get_by_ids(db=db, ids=list(product_ids))
+    products_map = {p.id: p for p in products}
+
+    # Map order_id -> list OrderItemView
+    items_by_order: dict[int, list[OrderItemView]] = {oid: [] for oid in order_ids}
+    total_by_order: dict[int, float] = {oid: 0.0 for oid in order_ids}
+
+    for item in all_items:
+        prod = products_map.get(item.product_id)
+        prod_name = prod.name if prod else ""
+        view = OrderItemView(
+            id=item.id,
+            prod_id=item.product_id,
+            prod_name=prod_name,
+            price_per_unit=item.price,
+            count=item.count,
+        )
+        items_by_order[item.order_id].append(view)
+        total_by_order[item.order_id] += item.price * item.count
+
+    # Build list OrderView
+    result: list[OrderView] = []
+    for o in orders:
+        result.append(
+            OrderView(
+                ord_id=o.id,
+                user_id=o.user_id,
+                status=o.status,
+                note=o.note,
+                status_str=OrderStatus[o.status],
+                total_price=total_by_order.get(o.id, 0.0),
+                items=items_by_order.get(o.id, []),
+            )
+        )
+
+    return result
+
+
+def get_order_detail(db: Session, user_id: int, order_id: int) -> OrderView | None:
+    """
+    Xem chi tiết 1 đơn hàng của user.
+    """
+    order = order_repo.get_order_by_id(db=db, order_id=order_id)
+    if not order or order.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found",
+        )
+
+    items = order_repo.get_items_by_order_id(db=db, order_id=order_id)
+    product_ids = {item.product_id for item in items}
+    products = prod_repo.get_by_ids(db=db, ids=list(product_ids))
+    products_map = {p.id: p for p in products}
+
+    item_views: list[OrderItemView] = []
+    total_price = 0.0
+
+    for item in items:
+        prod = products_map.get(item.product_id)
+        prod_name = prod.name if prod else ""
+        view = OrderItemView(
+            id=item.id,
+            prod_id=item.product_id,
+            prod_name=prod_name,
+            price_per_unit=item.price,
+            count=item.count,
+        )
+        item_views.append(view)
+        total_price += item.price * item.count
+
+    return OrderView(
+        ord_id=order.id,
+        user_id=order.user_id,
+        status=order.status,
+        note=order.note,
+        status_str=OrderStatus[order.status],
+        total_price=total_price,
+        items=item_views,
+    )
+
+
+def update_order_status(db: Session, user_id: int, order_id: int, status: int) -> None:
+    """
+    Cập nhật trạng thái đơn hàng (simple rule: chỉ chủ sở hữu order được update).
+    """
+    order = order_repo.get_order_by_id(db=db, order_id=order_id)
+    if not order or order.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found",
+        )
+
+    if status not in [s.value for s in OrderStatusEnum]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid status value",
+        )
+
+    order.status = status
+    db.commit()
