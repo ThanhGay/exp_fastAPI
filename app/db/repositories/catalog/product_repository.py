@@ -1,13 +1,28 @@
 from app.schemas.catalog.product import ProductCreate, ProductUpdate, ProductView
 from app.db.models.prod import Product, Category
+from app.db.repositories.base import apply_limit_offset
 from sqlalchemy.orm import Session
-from sqlalchemy import select, exists, and_
+from sqlalchemy import select, exists, and_, or_
 from datetime import datetime, timezone
 
 
-def get_multi(db: Session):
+def get_multi(
+    db: Session,
+    *,
+    limit: int | None = None,
+    offset: int | None = None,
+    keyword: str | None = None,
+):
     res = db.query(Product).where(Product.is_deleted != True)
-
+    if keyword:
+        pattern = f"%{keyword}%"
+        res = res.filter(
+            or_(
+                Product.name.ilike(pattern),
+                Product.description.ilike(pattern),
+            )
+        )
+    res = apply_limit_offset(res, limit=limit, offset=offset)
     return res.all()
 
 

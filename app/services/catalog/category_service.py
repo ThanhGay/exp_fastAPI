@@ -1,7 +1,8 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session 
+from sqlalchemy.orm import Session
 from app.db.repositories.catalog import category_repository as repo
 from app.schemas.catalog.category import CategoryCreate, CategoryUpdate, CategoryDelete
+from app.schemas.common.query_params import BaseQueryParams
 
 
 
@@ -17,8 +18,14 @@ def create_category( db: Session,req: CategoryCreate,user_id: int):
         
     return repo.create(db=db, req=req, user_id=user_id)
 
-def get_all_categories(db: Session):
-    return repo.get_categories(db)
+def get_all_categories(db: Session, query: BaseQueryParams | None = None):
+    params = query or BaseQueryParams()
+    return repo.get_categories(
+        db,
+        limit=params.limit,
+        offset=params.offset,
+        keyword=params.keyword,
+    )
 
 def get_by_id_category(db: Session, id: int):
     return repo.get_category_by_id(db, id)

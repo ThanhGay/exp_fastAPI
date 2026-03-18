@@ -1,7 +1,8 @@
 from app.schemas.catalog.category import CategoryCreate, CategoryUpdate
 from app.db.models.prod import Category
+from app.db.repositories.base import apply_limit_offset
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, exists
+from sqlalchemy import and_, exists, or_
 from datetime import datetime, timezone
 
 
@@ -22,9 +23,23 @@ def create(db: Session, req: CategoryCreate, user_id: int) -> Category:
 
 
 # READ - many
-def get_categories(db: Session):
+def get_categories(
+    db: Session,
+    *,
+    limit: int | None = None,
+    offset: int | None = None,
+    keyword: str | None = None,
+):
     res = db.query(Category).where(Category.is_deleted != True)
-    
+    if keyword:
+        pattern = f"%{keyword}%"
+        res = res.filter(
+            or_(
+                Category.name.ilike(pattern),
+                Category.description.ilike(pattern),
+            )
+        )
+    res = apply_limit_offset(res, limit=limit, offset=offset)
     return res.all()
 
 

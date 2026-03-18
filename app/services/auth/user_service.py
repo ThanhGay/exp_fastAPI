@@ -3,10 +3,18 @@ from fastapi import HTTPException, status
 
 from app.db.repositories.auth import user_repository as repo
 from app.schemas.auth.user import UserCreate
+from app.schemas.common.query_params import BaseQueryParams
 from app.utils.password import encode_password
 
-def get_all_users(db: Session):
-    return repo.get_multi(db)
+
+def get_all_users(db: Session, query: BaseQueryParams | None = None):
+    params = query or BaseQueryParams()
+    return repo.get_multi(
+        db,
+        limit=params.limit,
+        offset=params.offset,
+        keyword=params.keyword,
+    )
 
 def create_user(db: Session, user_in: UserCreate):
     if repo.exists_email(db, user_in.email):

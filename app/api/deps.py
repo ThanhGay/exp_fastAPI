@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.security import OAuth2PasswordBearer
 
@@ -8,8 +8,25 @@ from app.core.database import get_db
 from app.core.security import decode_token
 from app.db.models.auth import User
 from app.db.repositories.auth import user_repository as repo
+from app.schemas.common.query_params import BaseQueryParams
 
 security = HTTPBearer(auto_error=False)
+
+
+def get_query_params(
+    page: int = Query(1, ge=1, description="Trang"),
+    limit: int = Query(10, ge=1, le=100, description="Số bản ghi mỗi trang"),
+    keyword: str | None = Query(
+        None,
+        max_length=200,
+        description="Từ khóa tìm kiếm",
+    ),
+) -> BaseQueryParams:
+    """Dependency trả về query params dùng cho các API get_all."""
+    kw = keyword.strip() if keyword else None
+    if kw == "":
+        kw = None
+    return BaseQueryParams(page=page, limit=limit, keyword=kw)
 
 
 def get_current_user_id(

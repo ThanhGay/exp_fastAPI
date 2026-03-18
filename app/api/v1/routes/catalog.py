@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.api.deps import get_db, get_current_user_id
+from app.api.deps import get_db, get_current_user_id, get_query_params
 from app.schemas.catalog.product import ProductCreate, ProductView, ProductUpdate
+from app.schemas.common.query_params import BaseQueryParams
 from app.schemas.catalog.category import (
     CategoryView,
     CategoryCreate,
@@ -23,8 +24,11 @@ def create_product_route(
 
 
 @router.get("/products", response_model=list[ProductView])
-def get_all_products_route(db: Session = Depends(get_db)):
-    return product_service.get_all_products(db=db)
+def get_all_products_route(
+    db: Session = Depends(get_db),
+    query: BaseQueryParams = Depends(get_query_params),
+):
+    return product_service.get_all_products(db=db, query=query)
 
 
 @router.get("/products/{prod_id}", response_model=ProductView)
@@ -62,8 +66,11 @@ def delete_product_route(
 
 
 @router.get("", response_model=list[CategoryView])
-def get_all_category_route(db: Session = Depends(get_db)):
-    return category_service.get_all_categories(db=db)
+def get_all_category_route(
+    db: Session = Depends(get_db),
+    query: BaseQueryParams = Depends(get_query_params),
+):
+    return category_service.get_all_categories(db=db, query=query)
 
 
 @router.post("", response_model=CategoryView)

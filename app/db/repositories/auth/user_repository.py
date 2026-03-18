@@ -1,12 +1,30 @@
 from app.schemas.auth.user import UserCreate
 from app.schemas.auth.auth import AuthStatus
 from app.db.models.auth import User
+from app.db.repositories.base import apply_limit_offset
 from sqlalchemy.orm import Session
-from sqlalchemy import exists, select
+from sqlalchemy import exists, select, or_
 
-def get_multi(db: Session):
+
+def get_multi(
+    db: Session,
+    *,
+    limit: int | None = None,
+    offset: int | None = None,
+    keyword: str | None = None,
+):
     res = db.query(User)
-    
+    if keyword:
+        pattern = f"%{keyword}%"
+        res = res.filter(
+            or_(
+                User.username.ilike(pattern),
+                User.email.ilike(pattern),
+                User.first_name.ilike(pattern),
+                User.last_name.ilike(pattern),
+            )
+        )
+    res = apply_limit_offset(res, limit=limit, offset=offset)
     return res.all()
 
 def get_by_id(db: Session, user_id: int) -> User:

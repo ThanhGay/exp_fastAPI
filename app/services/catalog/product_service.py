@@ -6,10 +6,17 @@ from app.schemas.catalog.product import (
     ProductDelete,
     ProductView,
 )
+from app.schemas.common.query_params import BaseQueryParams
 
 
-def get_all_products(db: Session):
-    return repo.get_multi(db)
+def get_all_products(db: Session, query: BaseQueryParams | None = None):
+    params = query or BaseQueryParams()
+    return repo.get_multi(
+        db,
+        limit=params.limit,
+        offset=params.offset,
+        keyword=params.keyword,
+    )
 
 
 def get_product_by_id(db: Session, id: int):
