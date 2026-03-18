@@ -1,10 +1,12 @@
+import logging
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.core.database import engine
 from app.api.v1.router import router as api_v1_router
 from app.db.models.base import BaseAuth, BaseProd, BaseOrd
-from app.middleware import RequestLoggingMiddleware, CORSMiddleware
-import logging
+from app.middleware import RequestLoggingMiddleware, AuthMiddleware
 
 
 def create_tables():
@@ -19,7 +21,22 @@ def include_router(app):
 
 def add_middleware(app):
     app.add_middleware(RequestLoggingMiddleware)
-    app.add_middleware(CORSMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.add_middleware(
+        AuthMiddleware,
+        exclude_paths=(
+            "/openapi.json",
+            "/docs",
+            "/redoc",
+            "/api/v1/auth/login",
+        ),
+    )
 
 
 def setup_logging():
