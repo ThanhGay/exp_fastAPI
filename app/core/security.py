@@ -1,4 +1,4 @@
-import jwt
+import jwt, uuid
 from typing import Any
 from datetime import datetime, timezone, timedelta
 from app.core.config import settings  
@@ -32,3 +32,25 @@ def decode_token(token: str) -> dict[str, Any] | None:
         return None
     except jwt.InvalidTokenError:
         return None
+    
+def create_refresh_token(subject: str | int, extra: dict[str, Any] | None = None):
+    jti = str(uuid.uuid4())
+    expire = datetime.now(tz=timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    payload = {
+        "sub": str(subject),
+        "exp": expire,
+        "iat": datetime.now(tz=timezone.utc),
+        "jti": jti
+    }
+    
+    if extra:
+        payload.update(extra)
+    
+    token = jwt.encode(
+        payload,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
+    )
+
+    return token, jti, expire

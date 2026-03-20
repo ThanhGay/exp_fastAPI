@@ -1,5 +1,13 @@
 from app.db.models.base import BaseAuth
-from sqlalchemy import Column, Integer, String, Text, Table, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    Table,
+    ForeignKey,
+    DateTime,
+)
 from sqlalchemy.orm import relationship
 
 # User N - N Role
@@ -60,3 +68,11 @@ class Permission(BaseAuth):
     description = Column(Text)
 
     roles = relationship("Role", secondary=RolePermisison, back_populates="permissions")
+
+
+class TokenManagement(BaseAuth):
+    __tablename__ = "RefreshToken"
+
+    jti = Column(String(36), nullable=False, index=True, primary_key=True)
+    user_id = Column(Integer, index=True)
+    expire_at = Column(DateTime)

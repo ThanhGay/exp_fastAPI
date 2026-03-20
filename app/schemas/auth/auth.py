@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, field_validator
 from enum import Enum
 import re
+from datetime import datetime
 
 
 class AuthStatus(int, Enum):
@@ -20,6 +21,15 @@ class AuthResponse(BaseModel):
     fullname: str
     access_token: str
     refesh_token: str
+
+class AuthRefreshCreate(BaseModel):
+    user_id: int
+    jti: str
+    expire: datetime
+
+class AuthRefreshResponse(BaseModel):
+    access_token: str
+    refresh_token: str
 
 
 class ChangePassword(BaseModel):
