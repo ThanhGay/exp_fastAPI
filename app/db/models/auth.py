@@ -73,6 +73,6 @@ class Permission(BaseAuth):
 class TokenManagement(BaseAuth):
     __tablename__ = "RefreshToken"
 
-    jti = Column(String(36), nullable=False, index=True, primary_key=True)
+    jti = Column(String(36), nullable=False, index=True)
     user_id = Column(Integer, index=True)
     expire_at = Column(DateTime)
