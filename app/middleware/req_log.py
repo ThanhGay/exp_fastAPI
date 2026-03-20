@@ -19,12 +19,15 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         start = time.perf_counter()
         response = await call_next(request)
-        duration = time.perf_counter() - start
+        duration = (time.perf_counter() - start) * 1000
+
         ip = _client_ip(request)
+        rid = getattr(request.state, "request_id", "-")
 
         logger.info(
-            '%s "%s %s" - %s - %.3fs',
+            '\n%s | rid=%s | "%s - %s" %s %.3fms',
             ip,
+            rid,
             request.method,
             request.url.path,
             response.status_code,

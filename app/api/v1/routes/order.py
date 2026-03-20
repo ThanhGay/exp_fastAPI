@@ -4,7 +4,9 @@ from app.schemas.ord.order import OrderView, OrderCreateDirect, OrderCreateFromC
 from app.api.deps import get_db, get_current_user_id
 from app.services.order import order_service
 
-router = APIRouter(prefix="/order", tags=["order"])
+router = APIRouter(
+    prefix="/order", tags=["order"], dependencies=[Depends(get_current_user_id)]
+)
 
 
 @router.get("", response_model=list[OrderView])
