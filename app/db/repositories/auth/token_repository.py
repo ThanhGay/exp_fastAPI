@@ -40,7 +40,7 @@ def revoke(db: Session, jti: str) -> bool:
         return False
 
     ref_token.is_deleted = True
-    ref_token.deleted_at = datetime.now(tz=timezone.utc())
+    ref_token.deleted_at = datetime.now(tz=timezone.utc)
 
     db.commit()
     db.refresh(ref_token)

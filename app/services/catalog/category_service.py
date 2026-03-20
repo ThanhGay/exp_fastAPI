@@ -61,7 +61,7 @@ def update_category(db: Session, req: CategoryUpdate, user_id: int):
 def soft_delete_category(db: Session, req: CategoryDelete, user_id: int) -> bool:
     print(f"CategoryId delete: {req.id}")
 
-    category = repo.get_category_by_id(req.id)
+    category = repo.get_category_by_id(db=db, id=req.id)
 
     if not category:
         raise HTTPException(

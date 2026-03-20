@@ -66,18 +66,18 @@ def refresh_token(db: Session, token: str):
 
     payload = decode_token(token=token)
 
-    if not payload or "sub" not in payload:
+    if not payload or "sub" not in payload or "jti" not in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    jti = payload["jti"]
-    user_id = payload["sub"]
+    jti: str = payload["jti"]
+    user_id: int = int(payload["sub"])
 
     # revoke old refresh token
-    revoked = token_repo.revoke(jti=jti)
+    revoked = token_repo.revoke(db=db, jti=jti)
 
     if not revoked:
         raise HTTPException(
@@ -99,7 +99,7 @@ def refresh_token(db: Session, token: str):
     )
 
 
-def logout(db: Session, user_id: int) -> bool:
+def logout(db: Session, user_id: int, refresh_token: str | None = None) -> bool:
     user = repo.get_by_id(db, user_id)
 
     if not user:
@@ -107,7 +107,13 @@ def logout(db: Session, user_id: int) -> bool:
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    repo.update_status(db=db, new_stt=AuthStatus.CONNECT.value, user=user)
+    # Best-effort revoke of current refresh token (so cookie-based refresh stops working).
+    if refresh_token:
+        payload = decode_token(token=refresh_token)
+        if payload and "jti" in payload:
+            token_repo.revoke(db=db, jti=str(payload["jti"]))
+
+    repo.update_status(db=db, new_stt=AuthStatus.DISCONNECT.value, user=user)
 
     return True
 
