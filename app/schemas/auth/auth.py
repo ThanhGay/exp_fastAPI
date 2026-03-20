@@ -23,9 +23,10 @@ class AuthResponse(BaseModel):
 
 
 class ChangePassword(BaseModel):
-    password: str
+    current_pwd: str
+    new_pwd: str
 
-    @field_validator("password")
+    @field_validator("current_pwd", "new_pwd")
     def validate_password(cls, v):
 
         regex = r"^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"
@@ -36,3 +37,7 @@ class ChangePassword(BaseModel):
             )
 
         return v
+
+
+class ResetPassword(BaseModel):
+    email: EmailStr

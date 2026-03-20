@@ -1,6 +1,8 @@
 from pydantic import BaseModel, field_validator
 
 class CategoryView(BaseModel):
+    model_config = {"from_attributes": True}
+
     id: int
     name: str
     description: str | None = None

@@ -1,24 +1,27 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_query_params
 from app.schemas.auth.user import UserCreate, UserView
-from app.schemas.common.query_params import BaseQueryParams
+from app.schemas.common import BaseQueryParams, ApiResponse
 from app.services.auth import user_service
+from app.utils.response import ok
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("/", response_model=UserView)
+@router.post("/", response_model=ApiResponse[UserView], status_code=status.HTTP_201_CREATED)
 def create_user(
     user: UserCreate,
     db: Session = Depends(get_db),
 ):
-    return user_service.create_user(user_in=user, db=db)
+    new_user = user_service.create_user(user_in=user, db=db)
+    return ok(data=new_user, message="New user has been created.")
 
 
-@router.get("/", response_model=list[UserView])
+@router.get("/", response_model=ApiResponse[list[UserView]])
 def get_all_users_(
     db: Session = Depends(get_db),
     query: BaseQueryParams = Depends(get_query_params),
 ):
-    return user_service.get_all_users(db=db, query=query)
+    items = user_service.get_all_users(db=db, query=query)
+    return ok(data=items)

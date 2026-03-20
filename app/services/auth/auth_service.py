@@ -1,10 +1,15 @@
+import secrets
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.core.security import create_access_token
 from app.db.repositories.auth import user_repository as repo
-from app.schemas.auth.auth import AuthLogin, AuthResponse, AuthStatus
-from app.utils.password import encode_password, verify_password
+from app.schemas.auth.auth import AuthLogin, AuthResponse, AuthStatus, ResetPassword
+from app.utils.password import (
+    encode_password,
+    verify_password,
+    generate_secure_password,
+)
 
 
 def login(db: Session, req: AuthLogin) -> AuthResponse:
@@ -21,9 +26,7 @@ def login(db: Session, req: AuthLogin) -> AuthResponse:
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials"
         )
 
-    user.status = AuthStatus.CONNECT.value
-    db.commit()
-    db.refresh(user)
+    repo.update_status(db=db, new_stt=AuthStatus.CONNECT.value, user=user)
 
     access_token = create_access_token(
         subject=user.id,
@@ -41,27 +44,52 @@ def login(db: Session, req: AuthLogin) -> AuthResponse:
     return res
 
 
-def logout(db: Session, user_id: int):
+def logout(db: Session, user_id: int) -> bool:
     user = repo.get_by_id(db, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    user.status = AuthStatus.DISCONNECT.value
+    repo.update_status(db=db, new_stt=AuthStatus.CONNECT.value, user=user)
 
-    db.commit()
-    db.refresh(user)
-
-    return {"message": "Logged out success"}
+    return True
 
 
-def change_password(db: Session, user_id: int, new_password):
+def change_password(
+    db: Session, user_id: int, current_password: str, new_password: str
+):
+    """Nguoi dung tu thay doi mat khau"""
+
+    user = repo.get_by_id(db=db, user_id=user_id)
+
+    if not verify_password(pwd=current_password, hashed_pwd=user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your current password is incorrect",
+        )
+
     new_hashed_pwd = encode_password(new_password)
 
     result = repo.update_password(db=db, id=user_id, new_pwd=new_hashed_pwd)
 
-    if result:
-        return {"message": "Your password changed success"}
+    return result
 
-    return {"message": "Your password changed failure"}
+
+def reset_password(db: Session, email: str):
+    user = repo.get_by_email(db=db, email=email)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    new_pwd = generate_secure_password()
+
+    print(f"New password of user {user.id} is '{new_pwd}'")
+
+    new_hashed_pwd = encode_password(new_pwd)
+
+    result = repo.update_password(db=db, id=user.id, new_pwd=new_hashed_pwd)
+
+    return result

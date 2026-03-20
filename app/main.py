@@ -1,12 +1,17 @@
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.database import engine
 from app.api.v1.router import router as api_v1_router
 from app.db.models.base import BaseAuth, BaseProd, BaseOrd
-from app.middleware import RequestLoggingMiddleware, RequestIdMiddleware
+from app.middleware import (
+    RequestLoggingMiddleware,
+    RequestIdMiddleware,
+)
+from app.schemas.common.response import ApiResponse
 
 
 def create_tables():
@@ -40,6 +45,27 @@ def setup_logging():
         # filename="app.log",  # hoặc ghi file thay vì console
         # filemode="a",
     )
+    # return logging.getLogger(__name__)
+
+
+def config_exception_handler(app):
+    # handle loi http 4xx
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        response = ApiResponse(
+            success=False, code=exc.status_code, message=exc.detail, data=None
+        )
+
+        return JSONResponse(status_code=200, content=response.model_dump())
+
+    # handle loi server 5xx
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        response = ApiResponse(
+            success=False, code=500, message="Internal Server Error", data=None
+        )
+
+        return JSONResponse(status_code=200, content=response.model_dump())
 
 
 def start_application():
@@ -49,6 +75,7 @@ def start_application():
     create_tables()
     add_middleware(app=app)
     include_router(app=app)
+    config_exception_handler(app=app)
     return app
 
 
