@@ -5,15 +5,18 @@ from app.db.repositories.order import order_repository as order_repo
 from app.db.repositories.order import cart_repository as cart_repo
 from app.db.repositories.catalog import product_repository as prod_repo
 from app.schemas.ord.order import (
-    OrderCreateFromCart,
-    OrderStatusEnum,
     OrderCreate,
-    OrderItemCreate,
-    OrderView,
-    OrderItemView,
     OrderCreateDirect,
+    OrderCreateFromCart,
+    OrderView,
+    OrderItemCreate,
+    OrderItemView,
+    OrderStatusEnum,
     OrderStatus,
 )
+
+from app.services.order.states.transition import TRANSITIONS
+from app.services.order.states.registry import HANDLERS
 
 
 def create_order_from_cart(db: Session, user_id: int, req: OrderCreateFromCart):
@@ -249,7 +252,7 @@ def get_order_detail(db: Session, user_id: int, order_id: int) -> OrderView | No
 
 
 def update_order_status(
-    db: Session, user_id: int, order_id: int, new_status: int
+    db: Session, user_id: int, order_id: int, new_status: OrderStatusEnum
 ) -> None:
     """
     Cập nhật trạng thái đơn hàng (simple rule: chỉ chủ sở hữu order được update).
@@ -265,12 +268,6 @@ def update_order_status(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission",
-        )
-
-    if new_status not in [s.value for s in OrderStatusEnum]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid status value",
         )
 
     current_status = order.status
@@ -290,63 +287,18 @@ def update_order_status(
             detail="Order is already in a terminal state",
         )
 
-    # Normal flow: IDLE -> PROCESSING -> DELIVERING -> DONE
-    # CANCEL cho phép từ IDLE/PROCESSING/DELIVERING
-
-    allowed_transitions: dict[int, set[int]] = {
-        OrderStatusEnum.IDLE.value: {
-            OrderStatusEnum.PROCESSING.value,
-            OrderStatusEnum.CANCEL.value,
-        },
-        OrderStatusEnum.PROCESSING.value: {
-            OrderStatusEnum.DELIVERING.value,
-            OrderStatusEnum.CANCEL.value,
-        },
-        OrderStatusEnum.DELIVERING.value: {
-            OrderStatusEnum.DONE.value,
-            OrderStatusEnum.CANCEL.value,
-        },
-    }
-
-    if new_status not in allowed_transitions.get(current_status, set()):
+    # Cac trang thai duoc phep chuyen tiep
+    allowed_transitions = TRANSITIONS.get(order.status, set())
+    if new_status not in allowed_transitions:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Invalid status transition: {current_status} -> {new_status}",
         )
 
-    # Stock side-effects depending on transition target state.
-    # - PROCESSING: validate enough stock for each order item.
-    # - DELIVERING: decrease stock for each order item.
-    # - CANCEL (from DELIVERING): increase stock back for each order item.
-    order_items = order_repo.get_items_by_order_id(db=db, order_id=order_id)
-
-    if new_status == OrderStatusEnum.PROCESSING.value:
-        for item in order_items:
-            ok = prod_repo.validate_stock(db=db, id=item.product_id, count=item.count)
-            if not ok:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Insufficient stock for product_id={item.product_id}",
-                )
-
-    if new_status == OrderStatusEnum.DELIVERING.value:
-        # Validate again before decreasing to avoid negative stock.
-        for item in order_items:
-            ok = prod_repo.validate_stock(db=db, id=item.product_id, count=item.count)
-            if not ok:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"Insufficient stock for product_id={item.product_id}",
-                )
-        for item in order_items:
-            prod_repo.decrease_stock(db=db, id=item.product_id, count=item.count)
-
-    if (
-        new_status == OrderStatusEnum.CANCEL.value
-        and current_status == OrderStatusEnum.DELIVERING.value
-    ):
-        for item in order_items:
-            prod_repo.increase_stock(db=db, id=item.product_id, count=item.count)
+    # thuc hien cac action khi cap nhat sang trang thai moi
+    handler = HANDLERS.get(new_status)
+    if handler:
+        handler.handle(db=db, order=order)
 
     order_repo.update_order_status(
         db=db, order=order, status=new_status, user_id=user_id

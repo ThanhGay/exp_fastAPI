@@ -141,17 +141,10 @@ def validate_stock(db: Session, id: int, count: int) -> bool:
 def decrease_stock(db: Session, id: int, count: int):
     prod = get_by_id(db=db, id=id)
 
-    prod.stock = prod.stock - count
-
-    db.commit()
-    db.refresh(prod)
-    print(f"decrese: {prod.id} - {count} = {prod.stock}")
+    prod.stock -= count
 
 
 def increase_stock(db: Session, id: int, count: int):
     prod = get_by_id(db=db, id=id)
 
-    prod.stock = prod.stock + count
-
-    db.commit()
-    db.refresh(prod)
+    prod.stock += count

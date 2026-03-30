@@ -2,12 +2,13 @@ from enum import Enum
 from pydantic import BaseModel, Field, field_validator
 
 
-class OrderStatusEnum(int, Enum):
-    IDLE = 0
-    PROCESSING = 1
-    DELIVERING = 2
-    DONE = 3
-    CANCEL = 4
+class OrderStatusEnum(str, Enum):
+    IDLE = "IDLE"
+    PROCESSING = "PROCESSING"
+    DELIVERING = "DELIVERING"
+    DELIVERED = "DELIVERED"
+    DONE = "DONE"
+    CANCEL = "CANCEL"
 
 
 OrderStatus = dict(
@@ -15,6 +16,7 @@ OrderStatus = dict(
         OrderStatusEnum.IDLE: "Tao moi",
         OrderStatusEnum.PROCESSING: "Dang xu ly",
         OrderStatusEnum.DELIVERING: "Dang van chuyen",
+        OrderStatusEnum.DELIVERED: "Da giao hang",
         OrderStatusEnum.DONE: "Da nhan hang",
         OrderStatusEnum.CANCEL: "Da huy",
     }
@@ -43,7 +45,7 @@ class OrderItemView(OrderItemBase):
 
 
 class OrderBase(BaseModel):
-    status: int | None = Field(None)
+    status: OrderStatusEnum | None = Field(None)
     note: str | None = Field(None)
 
 
@@ -68,4 +70,4 @@ class OrderCreateDirect(OrderBase):
 
 
 class OrderUpdateStatus(BaseModel):
-    status: int
+    status: OrderStatusEnum
