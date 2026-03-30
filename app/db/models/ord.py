@@ -10,7 +10,7 @@ class Cart(BaseOrd):
 
 class Order(BaseOrd):
     user_id = Column(Integer, nullable=False)
-    status = Column(Integer, default=0)
+    status = Column(String(20), default=0)
     note = Column(Text)
 
 

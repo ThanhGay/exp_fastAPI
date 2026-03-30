@@ -17,16 +17,14 @@ if config.config_file_name is not None:
 
 from app.core.config import settings
 from app.core.database import engine
-from app.db.models.base import BaseAuth, BaseProd
-from app.db.models import auth as auth_models
-from app.db.models import prod as prod_models
+from app.db.models.base import BaseAuth, BaseProd, BaseOrd
 
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = [BaseAuth.metadata, BaseProd.metadata]
+target_metadata = [BaseAuth.metadata, BaseProd.metadata, BaseOrd.metadata]
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -75,9 +73,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
