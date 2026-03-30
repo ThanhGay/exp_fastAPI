@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app.db.models.ord import Order, OrderItem, Cart
+from app.db.models.ord import Order, OrderItem
 from app.schemas.ord.order import OrderItemCreate, OrderCreate, OrderStatusEnum
+from datetime import datetime, timezone
 
 
 def get_orders_by_user(db: Session, user_id: int) -> list[Order]:
@@ -45,3 +46,12 @@ def create_order_item(db: Session, item: OrderItemCreate, user_id: int) -> Order
     db.refresh(order_item)
 
     return order_item
+
+
+def update_order_status(db: Session, order: Order, status: int, user_id: int):
+    order.status = status
+    order.modified_by = user_id
+    order.modified_at = datetime.now(tz=timezone.utc)
+
+    db.commit()
+    db.refresh(order)

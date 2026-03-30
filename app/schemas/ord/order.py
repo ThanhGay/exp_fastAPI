@@ -65,3 +65,7 @@ class OrderCreateFromCart(BaseModel):
 
 class OrderCreateDirect(OrderBase):
     item: OrderItemCreate
+
+
+class OrderUpdateStatus(BaseModel):
+    status: int

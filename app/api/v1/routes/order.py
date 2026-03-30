@@ -1,6 +1,11 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-from app.schemas.ord.order import OrderView, OrderCreateDirect, OrderCreateFromCart
+from app.schemas.ord.order import (
+    OrderView,
+    OrderCreateDirect,
+    OrderCreateFromCart,
+    OrderUpdateStatus,
+)
 from app.api.deps import get_db, get_current_user_id
 from app.services.order import order_service
 from app.schemas.common.response import ApiResponse
@@ -55,3 +60,18 @@ def create_order_direct_route(
 ):
     created = order_service.create_order_direct(db=db, user_id=current_id, req=req)
     return ok(data=created, message="Order created")
+
+
+@router.patch("/{ord_id}/status")
+def update_status_order(
+    ord_id: int,
+    req: OrderUpdateStatus,
+    db: Session = Depends(get_db),
+    current_id: int = Depends(get_current_user_id),
+):
+
+    order_service.update_order_status(
+        db=db, user_id=current_id, order_id=ord_id, new_status=req.status
+    )
+
+    return ok(message=f"Don hang #{ord_id} cua ban da duoc cap nhat trang thai.")

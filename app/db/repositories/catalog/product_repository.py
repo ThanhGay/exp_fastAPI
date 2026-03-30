@@ -37,9 +37,7 @@ def get_by_ids(db: Session, ids: list[int]) -> list[Product]:
         return []
 
     return (
-        db.query(Product)
-        .filter(Product.id.in_(ids), Product.is_deleted != True)
-        .all()
+        db.query(Product).filter(Product.id.in_(ids), Product.is_deleted != True).all()
     )
 
 
@@ -129,3 +127,31 @@ def exist_product_id(db: Session, id: int) -> bool:
     return db.query(
         exists().where(and_(Product.id == id, Product.is_deleted != True))
     ).scalar()
+
+
+def validate_stock(db: Session, id: int, count: int) -> bool:
+    prod = get_by_id(db=db, id=id)
+
+    if prod.stock < count:
+        return False
+
+    return True
+
+
+def decrease_stock(db: Session, id: int, count: int):
+    prod = get_by_id(db=db, id=id)
+
+    prod.stock = prod.stock - count
+
+    db.commit()
+    db.refresh(prod)
+    print(f"decrese: {prod.id} - {count} = {prod.stock}")
+
+
+def increase_stock(db: Session, id: int, count: int):
+    prod = get_by_id(db=db, id=id)
+
+    prod.stock = prod.stock + count
+
+    db.commit()
+    db.refresh(prod)
