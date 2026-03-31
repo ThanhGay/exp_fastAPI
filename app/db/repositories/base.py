@@ -40,13 +40,12 @@ class BaseRepository(Generic[ModelType]):
     def create(self, db: Session, obj_in):
         db_obj = self.model(**obj_in.model_dump())
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        db.flush()
         return db_obj
 
     def delete(self, db: Session, id: int):
         obj = self.get(db, id)
         if obj:
             db.delete(obj)
-            db.commit()
+            db.flush()
         return obj

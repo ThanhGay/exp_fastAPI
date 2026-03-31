@@ -26,8 +26,7 @@ def create_order(db: Session, req: OrderCreate, user_id: int) -> Order:
     )
 
     db.add(order)
-    db.commit()
-    db.refresh(order)
+    db.flush()
 
     return order
 
@@ -42,16 +41,14 @@ def create_order_item(db: Session, item: OrderItemCreate, user_id: int) -> Order
     )
 
     db.add(order_item)
-    db.commit()
-    db.refresh(order_item)
+    db.flush()
 
     return order_item
 
 
-def update_order_status(db: Session, order: Order, status: int, user_id: int):
+def update_order_status(db: Session, order: Order, status: str, user_id: int):
     order.status = status
     order.modified_by = user_id
     order.modified_at = datetime.now(tz=timezone.utc)
 
-    db.commit()
-    db.refresh(order)
+    db.flush()

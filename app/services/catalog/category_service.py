@@ -19,7 +19,13 @@ def create_category(db: Session, req: CategoryCreate, user_id: int):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid parent_id"
             )
 
-    return repo.create(db=db, req=req, user_id=user_id)
+    try:
+        data = repo.create(db=db, req=req, user_id=user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise
 
 
 def get_all_categories(db: Session, query: BaseQueryParams | None = None):
@@ -55,7 +61,13 @@ def update_category(db: Session, req: CategoryUpdate, user_id: int):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid parent_id"
             )
 
-    return repo.update_category(db=db, req=req, user_id=user_id)
+    try:
+        data = repo.update_category(db=db, req=req, user_id=user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise
 
 
 def soft_delete_category(db: Session, req: CategoryDelete, user_id: int) -> bool:
@@ -69,4 +81,10 @@ def soft_delete_category(db: Session, req: CategoryDelete, user_id: int) -> bool
             detail="Category not found",
         )
 
-    return repo.delete(db, req.id, user_id)
+    try:
+        data = repo.delete(db, req.id, user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise

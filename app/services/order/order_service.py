@@ -57,39 +57,43 @@ def create_order_from_cart(db: Session, user_id: int, req: OrderCreateFromCart):
             detail=f"Some products not found: {missing_products}",
         )
 
-    # Tạo order (trạng thái mặc định IDLE)
-    order_req = OrderCreate(
-        user_id=user_id,
-        status=OrderStatusEnum.IDLE.value,
-        note=None,
-    )
-    order = order_repo.create_order(db=db, req=order_req, user_id=user_id)
-
-    # Tạo order items từ cart items
+    # Tạo order + order items + dọn cart trong 1 transaction boundary.
     order_items: list[OrderItemView] = []
     total_price = 0.0
-    for cart_item in valid_cart_items:
-        product = products_map[cart_item.product_id]
-        order_item_req = OrderItemCreate(
-            order_id=order.id,
-            prod_id=product.id,
-            price_per_unit=product.price,
-            count=cart_item.count,
+    try:
+        order_req = OrderCreate(
+            user_id=user_id,
+            status=OrderStatusEnum.IDLE.value,
+            note=None,
         )
-        created_item = order_repo.create_order_item(
-            db=db, item=order_item_req, user_id=user_id
-        )
-        cart_repo.delete_cart_item(db=db, id=cart_item.id, user_id=user_id)
+        order = order_repo.create_order(db=db, req=order_req, user_id=user_id)
 
-        item_view = OrderItemView(
-            id=created_item.id,
-            prod_id=product.id,
-            prod_name=product.name,
-            price_per_unit=created_item.price,
-            count=created_item.count,
-        )
-        order_items.append(item_view)
-        total_price += created_item.price * created_item.count
+        for cart_item in valid_cart_items:
+            product = products_map[cart_item.product_id]
+            order_item_req = OrderItemCreate(
+                order_id=order.id,
+                prod_id=product.id,
+                price_per_unit=product.price,
+                count=cart_item.count,
+            )
+            created_item = order_repo.create_order_item(
+                db=db, item=order_item_req, user_id=user_id
+            )
+            cart_repo.delete_cart_item(db=db, id=cart_item.id, user_id=user_id)
+
+            item_view = OrderItemView(
+                id=created_item.id,
+                prod_id=product.id,
+                prod_name=product.name,
+                price_per_unit=created_item.price,
+                count=created_item.count,
+            )
+            order_items.append(item_view)
+            total_price += created_item.price * created_item.count
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return OrderView(
         ord_id=order.id,
@@ -117,18 +121,23 @@ def create_order_direct(db: Session, user_id: int, req: OrderCreateDirect):
         status=OrderStatusEnum.IDLE.value,
         note=req.note,
     )
-    order = order_repo.create_order(db=db, req=order_req, user_id=user_id)
+    try:
+        order = order_repo.create_order(db=db, req=order_req, user_id=user_id)
 
-    order_item_req = OrderItemCreate(
-        order_id=order.id,
-        prod_id=req.item.prod_id,
-        price_per_unit=valid_prod.price,
-        count=req.item.count,
-    )
+        order_item_req = OrderItemCreate(
+            order_id=order.id,
+            prod_id=req.item.prod_id,
+            price_per_unit=valid_prod.price,
+            count=req.item.count,
+        )
 
-    created_item = order_repo.create_order_item(
-        db=db, item=order_item_req, user_id=user_id
-    )
+        created_item = order_repo.create_order_item(
+            db=db, item=order_item_req, user_id=user_id
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     order_items: list[OrderItemView] = []
     total_price = 0.0
@@ -270,15 +279,15 @@ def update_order_status(
             detail="You don't have permission",
         )
 
-    current_status = order.status
+    current_status = OrderStatusEnum(order.status)
 
     # update cùng trạng thái thì không làm gì
     if new_status == current_status:
         return
 
     terminal_statuses = {
-        OrderStatusEnum.DONE.value,
-        OrderStatusEnum.CANCEL.value,
+        OrderStatusEnum.DONE,
+        OrderStatusEnum.CANCEL,
     }
 
     if current_status in terminal_statuses:
@@ -288,18 +297,23 @@ def update_order_status(
         )
 
     # Cac trang thai duoc phep chuyen tiep
-    allowed_transitions = TRANSITIONS.get(order.status, set())
+    allowed_transitions = TRANSITIONS.get(current_status, set())
     if new_status not in allowed_transitions:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Invalid status transition: {current_status} -> {new_status}",
         )
 
-    # thuc hien cac action khi cap nhat sang trang thai moi
-    handler = HANDLERS.get(new_status)
-    if handler:
-        handler.handle(db=db, order=order)
+    try:
+        # thuc hien cac action khi cap nhat sang trang thai moi
+        handler = HANDLERS.get(new_status)
+        if handler:
+            handler.handle(db=db, order=order)
 
-    order_repo.update_order_status(
-        db=db, order=order, status=new_status, user_id=user_id
-    )
+        order_repo.update_order_status(
+            db=db, order=order, status=new_status.value, user_id=user_id
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise

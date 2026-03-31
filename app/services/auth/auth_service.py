@@ -33,8 +33,6 @@ def login(db: Session, req: AuthLogin) -> AuthResponse:
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials"
         )
 
-    repo.update_status(db=db, new_stt=AuthStatus.CONNECT.value, user=user)
-
     access_token = create_access_token(
         subject=user.id,
         extra={"username": user.username},
@@ -44,15 +42,21 @@ def login(db: Session, req: AuthLogin) -> AuthResponse:
         subject=user.id, extra={"username": user.username}
     )
 
-    request = AuthRefreshCreate(jti=jti, user_id=user.id, expire=expire)
-    token_repo.add_ref_token(db=db, req=request)
+    try:
+        repo.update_status(db=db, new_status=AuthStatus.CONNECT.value, user=user)
+        request = AuthRefreshCreate(jti=jti, user_id=user.id, expire=expire)
+        token_repo.add_ref_token(db=db, req=request)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     result = AuthResponse(
         email=user.email,
         username=user.username,
         fullname=user.fullname,
         access_token=access_token,
-        refesh_token=refresh_token,
+        refresh_token=refresh_token,
     )
 
     return result
@@ -77,19 +81,27 @@ def refresh_token(db: Session, token: str):
     user_id: int = int(payload["sub"])
 
     # revoke old refresh token
-    revoked = token_repo.revoke(db=db, jti=jti)
+    try:
+        revoked = token_repo.revoke(db=db, jti=jti)
 
-    if not revoked:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Refesh token not found"
-        )
+        if not revoked:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Refresh token not found"
+            )
 
-    # create new refresh_token
-    new_refresh_token, new_jti, new_expire = create_refresh_token(subject=user_id)
+        # create new refresh_token
+        new_refresh_token, new_jti, new_expire = create_refresh_token(subject=user_id)
 
-    # save new refresh_token into database
-    request = AuthRefreshCreate(jti=new_jti, user_id=user_id, expire=new_expire)
-    token_repo.add_ref_token(db=db, req=request)
+        # save new refresh_token into database
+        request = AuthRefreshCreate(jti=new_jti, user_id=user_id, expire=new_expire)
+        token_repo.add_ref_token(db=db, req=request)
+        db.commit()
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
 
     # create new access_token
     new_access_token = create_access_token(subject=user_id)
@@ -108,12 +120,17 @@ def logout(db: Session, user_id: int, refresh_token: str | None = None) -> bool:
         )
 
     # Best-effort revoke of current refresh token (so cookie-based refresh stops working).
-    if refresh_token:
-        payload = decode_token(token=refresh_token)
-        if payload and "jti" in payload:
-            token_repo.revoke(db=db, jti=str(payload["jti"]))
+    try:
+        if refresh_token:
+            payload = decode_token(token=refresh_token)
+            if payload and "jti" in payload:
+                token_repo.revoke(db=db, jti=str(payload["jti"]))
 
-    repo.update_status(db=db, new_stt=AuthStatus.DISCONNECT.value, user=user)
+        repo.update_status(db=db, new_status=AuthStatus.DISCONNECT.value, user=user)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return True
 
@@ -133,7 +150,12 @@ def change_password(
 
     new_hashed_pwd = encode_password(new_password)
 
-    result = repo.update_password(db=db, id=user_id, new_pwd=new_hashed_pwd)
+    try:
+        result = repo.update_password(db=db, id=user_id, new_pwd=new_hashed_pwd)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return result
 
@@ -152,6 +174,11 @@ def reset_password(db: Session, req: ResetPassword):
 
     new_hashed_pwd = encode_password(new_pwd)
 
-    result = repo.update_password(db=db, id=user.id, new_pwd=new_hashed_pwd)
+    try:
+        result = repo.update_password(db=db, id=user.id, new_pwd=new_hashed_pwd)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return result

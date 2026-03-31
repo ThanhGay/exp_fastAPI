@@ -50,7 +50,13 @@ def get_product_by_id(db: Session, id: int):
 
 def create_product(product_in: ProductCreate, db: Session, user_id: int):
     print(f"Data create product: {product_in}")
-    return repo.create(db=db, req=product_in, user_id=user_id)
+    try:
+        data = repo.create(db=db, req=product_in, user_id=user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise
 
 
 def update_product(req: ProductUpdate, db: Session, user_id: int):
@@ -62,7 +68,13 @@ def update_product(req: ProductUpdate, db: Session, user_id: int):
             detail="Product not found",
         )
 
-    return repo.update_product(db=db, req=req, user_id=user_id)
+    try:
+        data = repo.update_product(db=db, req=req, user_id=user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise
 
 
 def soft_delete_product(req: ProductDelete, db: Session, user_id: int):
@@ -74,12 +86,24 @@ def soft_delete_product(req: ProductDelete, db: Session, user_id: int):
             detail="Product not found",
         )
 
-    return repo.delete_product(db=db, id=req.id, user_id=user_id)
+    try:
+        data = repo.delete_product(db=db, id=req.id, user_id=user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise
 
 
 def remove_product(id: int, db: Session):
     print(f"Delete permanent product_id: {id}")
-    return repo.remove_product(db=db, id=id)
+    try:
+        data = repo.remove_product(db=db, id=id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise
 
 
 def get_products_by_category_id(category_id: int, db: Session):

@@ -35,11 +35,18 @@ def add_to_cart(db: Session, user_id: int, req: CartItemCreate):
     exist_cart_item = cart_repo.exist_cart_with_product_id_and_user_id(
         db=db, user_id=user_id, product_id=req.product_id
     )
-    if exist_cart_item:
-        return cart_repo.add_more(
-            db=db, item=exist_cart_item, count=req.count, user_id=user_id
-        )
-    return cart_repo.create(db=db, req=req, user_id=user_id)
+    try:
+        if exist_cart_item:
+            data = cart_repo.add_more(
+                db=db, item=exist_cart_item, count=req.count, user_id=user_id
+            )
+        else:
+            data = cart_repo.create(db=db, req=req, user_id=user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise
 
 
 def delete_from_cart(db: Session, user_id: int, req: CartItemDelete):
@@ -59,4 +66,10 @@ def delete_from_cart(db: Session, user_id: int, req: CartItemDelete):
             detail="You don't have permission to remove this",
         )
 
-    return cart_repo.delete_cart_item(db=db, id=req.id, user_id=user_id)
+    try:
+        data = cart_repo.delete_cart_item(db=db, id=req.id, user_id=user_id)
+        db.commit()
+        return data
+    except Exception:
+        db.rollback()
+        raise

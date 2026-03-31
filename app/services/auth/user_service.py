@@ -27,4 +27,10 @@ def create_user(db: Session, user_in: UserCreate):
     
     print(f"Data create user: {user_in}")
     
-    return repo.create(db, user_in)
+    try:
+        user = repo.create(db, user_in)
+        db.commit()
+        return user
+    except Exception:
+        db.rollback()
+        raise

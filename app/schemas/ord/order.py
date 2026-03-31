@@ -7,6 +7,7 @@ class OrderStatusEnum(str, Enum):
     PROCESSING = "PROCESSING"
     DELIVERING = "DELIVERING"
     DELIVERED = "DELIVERED"
+    RETURN_REQUESTED = "RETURN_REQUESTED"
     DONE = "DONE"
     CANCEL = "CANCEL"
 
@@ -17,6 +18,7 @@ OrderStatus = dict(
         OrderStatusEnum.PROCESSING: "Dang xu ly",
         OrderStatusEnum.DELIVERING: "Dang van chuyen",
         OrderStatusEnum.DELIVERED: "Da giao hang",
+        OrderStatusEnum.RETURN_REQUESTED: "Yeu cau tra hang",
         OrderStatusEnum.DONE: "Da nhan hang",
         OrderStatusEnum.CANCEL: "Da huy",
     }

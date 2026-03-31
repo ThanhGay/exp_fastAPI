@@ -24,9 +24,9 @@ def add_ref_token(db: Session, req: AuthRefreshCreate) -> RefToken:
     new_ref_token = RefToken(jti=req.jti, user_id=req.user_id, expire_at=req.expire)
 
     db.add(new_ref_token)
-    db.commit()
+    db.flush()
 
-    return req
+    return new_ref_token
 
 
 def revoke(db: Session, jti: str) -> bool:
@@ -42,7 +42,6 @@ def revoke(db: Session, jti: str) -> bool:
     ref_token.is_deleted = True
     ref_token.deleted_at = datetime.now(tz=timezone.utc)
 
-    db.commit()
-    db.refresh(ref_token)
+    db.flush()
 
     return True

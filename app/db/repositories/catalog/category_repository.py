@@ -16,8 +16,7 @@ def create(db: Session, req: CategoryCreate, user_id: int) -> Category:
     )
 
     db.add(new_category)
-    db.commit()
-    db.refresh(new_category)
+    db.flush()
 
     return new_category
 
@@ -66,8 +65,7 @@ def update_category(db: Session, req: CategoryUpdate, user_id: int) -> Category:
     category.modified_at = datetime.now(tz=timezone.utc)
     category.modified_by = user_id
 
-    db.commit()
-    db.refresh(category)
+    db.flush()
 
     return category
 
@@ -83,8 +81,7 @@ def delete(db: Session, id: int, user_id: int) -> bool:
     category.deleted_at = datetime.now(tz=timezone.utc)
     category.deleted_by = user_id
 
-    db.commit()
-    db.refresh(category)
+    db.flush()
 
     return True
 
@@ -97,7 +94,7 @@ def remove(db: Session, id: int) -> bool:
         return False
 
     db.delete(category)
-    db.commit()
+    db.flush()
 
     return True
 

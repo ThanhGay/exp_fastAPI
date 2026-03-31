@@ -70,8 +70,7 @@ def create(db: Session, req: ProductCreate, user_id: int) -> Product:
     )
 
     db.add(product)
-    db.commit()
-    db.refresh(product)
+    db.flush()
 
     return product
 
@@ -90,8 +89,7 @@ def update_product(db: Session, req: ProductUpdate, user_id: int) -> Product:
     prod.modified_at = datetime.now(tz=timezone.utc)
     prod.modified_by = user_id
 
-    db.commit()
-    db.refresh(prod)
+    db.flush()
 
     return prod
 
@@ -105,8 +103,7 @@ def delete_product(db: Session, id: int, user_id: int) -> bool:
     prod.deleted_at = datetime.now(tz=timezone.utc)
     prod.deleted_by = user_id
 
-    db.commit()
-    db.refresh(prod)
+    db.flush()
 
     return True
 
@@ -118,7 +115,7 @@ def remove_product(db: Session, id: int) -> bool:
         return False
 
     db.delete(prod)
-    db.commit()
+    db.flush()
 
     return True
 
@@ -131,6 +128,8 @@ def exist_product_id(db: Session, id: int) -> bool:
 
 def validate_stock(db: Session, id: int, count: int) -> bool:
     prod = get_by_id(db=db, id=id)
+    if not prod or count <= 0:
+        return False
 
     if prod.stock < count:
         return False
@@ -140,11 +139,17 @@ def validate_stock(db: Session, id: int, count: int) -> bool:
 
 def decrease_stock(db: Session, id: int, count: int):
     prod = get_by_id(db=db, id=id)
+    if not prod or count <= 0:
+        return
+    if prod.stock < count:
+        return
 
     prod.stock -= count
 
 
 def increase_stock(db: Session, id: int, count: int):
     prod = get_by_id(db=db, id=id)
+    if not prod or count <= 0:
+        return
 
     prod.stock += count

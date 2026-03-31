@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from enum import Enum
 import re
 from datetime import datetime
@@ -20,7 +20,17 @@ class AuthResponse(BaseModel):
     email: str
     fullname: str
     access_token: str
-    refesh_token: str
+    refresh_token: str
+    # Backward-compat alias, keep for a deprecation window.
+    refesh_token: str | None = None
+
+    @model_validator(mode="after")
+    def sync_refresh_token_alias(self):
+        if self.refesh_token is None:
+            self.refesh_token = self.refresh_token
+        if not self.refresh_token and self.refesh_token:
+            self.refresh_token = self.refesh_token
+        return self
 
 class AuthRefreshCreate(BaseModel):
     user_id: int

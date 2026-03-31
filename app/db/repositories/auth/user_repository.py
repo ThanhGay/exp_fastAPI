@@ -43,8 +43,7 @@ def create(db: Session, user_in: UserCreate) -> User:
     )
 
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    db.flush()
     return new_user
 
 
@@ -59,11 +58,10 @@ def get_by_email(db: Session, email: str) -> User | None:
     return user
 
 
-def update_status(db: Session, new_stt: int, user: User) -> User:
-    user.status = new_stt
+def update_status(db: Session, new_status: int, user: User) -> User:
+    user.status = new_status
 
-    db.commit()
-    db.refresh(user)
+    db.flush()
 
     return user
 
@@ -75,7 +73,6 @@ def update_password(db: Session, id: int, new_pwd: str) -> bool:
 
     user.password = new_pwd
 
-    db.commit()
-    db.refresh(user)
+    db.flush()
 
     return True

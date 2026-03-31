@@ -34,7 +34,7 @@ def set_refresh_cookie(response: Response, refresh_token: str) -> None:
 async def login(req: AuthLogin, response: Response, db: Session = Depends(get_db)):
     data = auth_service.login(db, req)
 
-    set_refresh_cookie(response=response, refresh_token=data.refesh_token)
+    set_refresh_cookie(response=response, refresh_token=data.refresh_token)
 
     return ok(data=data, message="Login successful.")
 

@@ -5,16 +5,14 @@ from app.db.models.auth import Role, Permission, User
 def create_role(db: Session, name: str) -> Role:
     role = Role(name=name)
     db.add(role)
-    db.commit()
-    db.refresh(role)
+    db.flush()
     return role
 
 
 def create_permission(db: Session, code: str, description: str | None) -> Permission:
     perm = Permission(code=code, description=description)
     db.add(perm)
-    db.commit()
-    db.refresh(perm)
+    db.flush()
     return perm
 
 
@@ -33,8 +31,7 @@ def assign_role_to_user(db: Session, user_id: int, role_id: int) -> User:
         return None
     if role not in user.roles:
         user.roles.append(role)
-        db.commit()
-        db.refresh(user)
+        db.flush()
     return user
 
 
@@ -45,8 +42,7 @@ def assign_permission_to_role(db: Session, role_id: int, perm_id: int) -> Role:
         return None
     if perm not in role.permissions:
         role.permissions.append(perm)
-        db.commit()
-        db.refresh(role)
+        db.flush()
     return role
 
 

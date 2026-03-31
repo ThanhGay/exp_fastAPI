@@ -21,8 +21,7 @@ def create(db: Session, req: CartItemCreate, user_id: int) -> Cart:
     )
 
     db.add(cart_item)
-    db.commit()
-    db.refresh(cart_item)
+    db.flush()
 
     return cart_item
 
@@ -36,8 +35,7 @@ def delete_cart_item(db: Session, id: int, user_id: int) -> bool:
     cart_item.deleted_at = datetime.now(tz=timezone.utc)
     cart_item.deleted_by = user_id
 
-    db.commit()
-    db.refresh(cart_item)
+    db.flush()
 
     return True
 
@@ -49,7 +47,7 @@ def remove_cart_item(db: Session, id: int) -> bool:
         return False
 
     db.delete(cart_item)
-    db.commit()
+    db.flush()
 
     return True
 
@@ -74,7 +72,6 @@ def add_more(db: Session, item: Cart, count: int, user_id: int) -> Cart:
     item.modified_at = datetime.now(tz=timezone.utc)
     item.modified_by = user_id
 
-    db.commit()
-    db.refresh(item)
+    db.flush()
 
     return item
