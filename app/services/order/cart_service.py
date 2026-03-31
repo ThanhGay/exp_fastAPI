@@ -5,7 +5,7 @@ from app.db.repositories.catalog import product_repository as prod_repo
 from app.schemas.ord.cart import CartItemView, CartItemCreate, CartItemDelete
 
 
-def get_my_cart(db: Session, user_id: int):
+def get_my_cart(db: Session, user_id: int) -> list[CartItemView] | None:
     cart_items = cart_repo.get_cart_by_user_id(db=db, user_id=user_id)
 
     product_ids = {item.product_id for item in cart_items}
@@ -25,7 +25,7 @@ def get_my_cart(db: Session, user_id: int):
     ]
 
 
-def add_to_cart(db: Session, user_id: int, req: CartItemCreate):
+def add_to_cart(db: Session, user_id: int, req: CartItemCreate) -> None:
     print(f"Data add to cart: {req}")
 
     if not prod_repo.exist_product_id(db=db, id=req.product_id):
@@ -35,6 +35,14 @@ def add_to_cart(db: Session, user_id: int, req: CartItemCreate):
     exist_cart_item = cart_repo.exist_cart_with_product_id_and_user_id(
         db=db, user_id=user_id, product_id=req.product_id
     )
+
+    new_count = exist_cart_item.count + req.count if exist_cart_item else req.count
+    if not prod_repo.validate_stock(db=db, id=req.product_id, count=new_count):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Product in stock not enough",
+        )
+
     try:
         if exist_cart_item:
             data = cart_repo.add_more(
@@ -49,7 +57,7 @@ def add_to_cart(db: Session, user_id: int, req: CartItemCreate):
         raise
 
 
-def delete_from_cart(db: Session, user_id: int, req: CartItemDelete):
+def delete_from_cart(db: Session, user_id: int, req: CartItemDelete) -> bool:
     print(f"Delete cart_id: {req.id}")
 
     cart_item = cart_repo.get_by_id(db=db, id=req.id)
@@ -67,7 +75,7 @@ def delete_from_cart(db: Session, user_id: int, req: CartItemDelete):
         )
 
     try:
-        data = cart_repo.delete_cart_item(db=db, id=req.id, user_id=user_id)
+        data = cart_repo.soft_delete_by_id(db=db, id=req.id, user_id=user_id)
         db.commit()
         return data
     except Exception:

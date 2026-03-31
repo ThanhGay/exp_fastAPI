@@ -5,8 +5,13 @@ from app.schemas.ord.order import OrderItemCreate, OrderCreate, OrderStatusEnum
 from datetime import datetime, timezone
 
 
-def get_orders_by_user(db: Session, user_id: int) -> list[Order]:
-    return db.query(Order).filter(Order.user_id == user_id).all()
+def get_orders_by_user(db: Session, user_id: int, status: str = None) -> list[Order]:
+    stmt = db.query(Order).filter(Order.user_id == user_id, Order.is_deleted != True)
+
+    if status is not None:
+        stmt = stmt.filter(Order.status == status)
+
+    return stmt.order_by(Order.created_at.desc()).all()
 
 
 def get_order_by_id(db: Session, order_id: int) -> Order | None:
@@ -15,6 +20,12 @@ def get_order_by_id(db: Session, order_id: int) -> Order | None:
 
 def get_items_by_order_id(db: Session, order_id: int) -> list[OrderItem]:
     return db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
+
+
+def get_items_by_order_ids(db: Session, order_ids: list[int]) -> list[OrderItem]:
+    if not order_ids:
+        return []
+    return db.query(OrderItem).filter(OrderItem.order_id.in_(order_ids)).all()
 
 
 def create_order(db: Session, req: OrderCreate, user_id: int) -> Order:

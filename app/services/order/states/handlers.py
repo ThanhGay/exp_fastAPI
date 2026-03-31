@@ -19,12 +19,19 @@ def _get_order_items(db: Session, order: Order):
     return order_repo.get_items_by_order_id(db=db, order_id=order.id)
 
 
+def _get_products_map_for_items(db: Session, order_items):
+    product_ids = list({item.product_id for item in order_items})
+    products = prod_repo.get_by_ids(db=db, ids=product_ids)
+    return {prod.id: prod for prod in products}
+
+
 class ProcessingHandler(BaseHandler):
     def handle(self, db: Session, order: Order) -> None:
         order_items = _get_order_items(db=db, order=order)
+        products_map = _get_products_map_for_items(db=db, order_items=order_items)
         for item in order_items:
-            ok = prod_repo.validate_stock(db=db, id=item.product_id, count=item.count)
-            if not ok:
+            prod = products_map.get(item.product_id)
+            if not prod or item.count <= 0 or prod.stock < item.count:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"Insufficient stock for product_id={item.product_id}",
@@ -34,18 +41,19 @@ class ProcessingHandler(BaseHandler):
 class DeliveringHandler(BaseHandler):
     def handle(self, db: Session, order: Order) -> None:
         order_items = _get_order_items(db=db, order=order)
+        products_map = _get_products_map_for_items(db=db, order_items=order_items)
 
         # Validate again before decreasing to avoid negative stock.
         for item in order_items:
-            ok = prod_repo.validate_stock(db=db, id=item.product_id, count=item.count)
-            if not ok:
+            prod = products_map.get(item.product_id)
+            if not prod or item.count <= 0 or prod.stock < item.count:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"Insufficient stock for product_id={item.product_id}",
                 )
 
         for item in order_items:
-            prod_repo.decrease_stock(db=db, id=item.product_id, count=item.count)
+            products_map[item.product_id].stock -= item.count
 
 
 class DeliveredHandler(BaseHandler):
@@ -73,5 +81,9 @@ class RefundHandler(BaseHandler):
             return None
 
         order_items = _get_order_items(db=db, order=order)
+        products_map = _get_products_map_for_items(db=db, order_items=order_items)
         for item in order_items:
-            prod_repo.increase_stock(db=db, id=item.product_id, count=item.count)
+            prod = products_map.get(item.product_id)
+            if not prod or item.count <= 0:
+                continue
+            prod.stock += item.count

@@ -8,6 +8,7 @@ from app.schemas.ord.order import (
     OrderCreate,
     OrderCreateDirect,
     OrderCreateFromCart,
+    OrderQueryParams,
     OrderView,
     OrderItemCreate,
     OrderItemView,
@@ -23,21 +24,15 @@ def create_order_from_cart(db: Session, user_id: int, req: OrderCreateFromCart):
     """
     Create an order from selected cart item ids.
     """
-    # Lọc các cart item hợp lệ theo user và id
-    valid_cart_items = []
-    for cart_id in req.item_ids:
-        cart_item = cart_repo.get_by_id(db=db, id=cart_id)
-        if not cart_item:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Not found cart item with id {cart_id} or it be deleted",
-            )
-        if cart_item.user_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission on one of cart items",
-            )
-        valid_cart_items.append(cart_item)
+    # Batch load all requested cart items for current user.
+    valid_cart_items = cart_repo.get_by_ids_and_user(
+        db=db, ids=req.item_ids, user_id=user_id
+    )
+    if len(valid_cart_items) != len(req.item_ids):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Some cart items not found or inaccessible",
+        )
 
     if not valid_cart_items:
         raise HTTPException(
@@ -79,7 +74,6 @@ def create_order_from_cart(db: Session, user_id: int, req: OrderCreateFromCart):
             created_item = order_repo.create_order_item(
                 db=db, item=order_item_req, user_id=user_id
             )
-            cart_repo.delete_cart_item(db=db, id=cart_item.id, user_id=user_id)
 
             item_view = OrderItemView(
                 id=created_item.id,
@@ -90,6 +84,20 @@ def create_order_from_cart(db: Session, user_id: int, req: OrderCreateFromCart):
             )
             order_items.append(item_view)
             total_price += created_item.price * created_item.count
+
+        # Batch soft-delete selected cart rows after all order items created.
+        cart_ids = [item.id for item in valid_cart_items]
+        deleted_count = cart_repo.soft_delete_by_ids(
+            db=db, ids=cart_ids, user_id=user_id
+        )
+
+        # Kiem tra so dong da xoa co chinh xac voi so luong products tao don
+        if deleted_count != len(cart_ids):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Failed to finalize cart cleanup for this order",
+            )
+
         db.commit()
     except Exception:
         db.rollback()
@@ -163,19 +171,19 @@ def create_order_direct(db: Session, user_id: int, req: OrderCreateDirect):
     )
 
 
-def get_my_orders(db: Session, user_id: int) -> list[OrderView]:
+def get_my_orders(
+    db: Session, user_id: int, query: OrderQueryParams
+) -> list[OrderView]:
     """
     Lấy tất cả đơn hàng của user hiện tại.
     """
-    orders = order_repo.get_orders_by_user(db=db, user_id=user_id)
+    orders = order_repo.get_orders_by_user(db=db, user_id=user_id, status=query.status)
     if not orders:
         return []
 
-    # Lấy tất cả order_id và items tương ứng
+    # Batch load all order items to avoid N+1 queries.
     order_ids = [o.id for o in orders]
-    all_items = []
-    for oid in order_ids:
-        all_items.extend(order_repo.get_items_by_order_id(db=db, order_id=oid))
+    all_items = order_repo.get_items_by_order_ids(db=db, order_ids=order_ids)
 
     # Lấy thông tin sản phẩm để map tên + giá
     product_ids = {item.product_id for item in all_items}

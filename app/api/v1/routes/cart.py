@@ -7,10 +7,10 @@ from app.schemas.ord.cart import CartItemView, CartItemCreate, CartItemDelete
 from app.services.order import cart_service
 from app.utils.response import ok
 
-router = APIRouter(prefix="", tags=["cart"])
+router = APIRouter(prefix="/cart", tags=["cart"])
 
 
-@router.get("/my-cart", response_model=ApiResponse[list[CartItemView]])
+@router.get("/mine", response_model=ApiResponse[list[CartItemView]])
 def get_my_cart(
     db: Session = Depends(get_db), current_id: int = Depends(get_current_user_id)
 ):

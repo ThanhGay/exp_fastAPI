@@ -1,5 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator
+from app.schemas.common.query_params import BaseQueryParams
 
 
 class OrderStatusEnum(str, Enum):
@@ -73,3 +74,7 @@ class OrderCreateDirect(OrderBase):
 
 class OrderUpdateStatus(BaseModel):
     status: OrderStatusEnum
+
+
+class OrderQueryParams(BaseQueryParams):
+    status: OrderStatusEnum | None = Field(None)

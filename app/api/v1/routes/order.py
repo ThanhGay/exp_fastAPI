@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.schemas.ord.order import (
+    OrderQueryParams,
     OrderView,
     OrderCreateDirect,
     OrderCreateFromCart,
@@ -16,11 +17,13 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=ApiResponse[list[OrderView]])
+@router.get("/mine", response_model=ApiResponse[list[OrderView]])
 def get_my_orders_route(
-    db: Session = Depends(get_db), current_id: int = Depends(get_current_user_id)
+    db: Session = Depends(get_db),
+    current_id: int = Depends(get_current_user_id),
+    query: OrderQueryParams = Depends(),
 ):
-    items = order_service.get_my_orders(db=db, user_id=current_id)
+    items = order_service.get_my_orders(db=db, user_id=current_id, query=query)
     return ok(data=items)
 
 
