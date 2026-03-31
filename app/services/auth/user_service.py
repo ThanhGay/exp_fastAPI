@@ -5,6 +5,8 @@ from app.db.repositories.auth import user_repository as repo
 from app.schemas.auth.user import UserCreate
 from app.schemas.common.query_params import BaseQueryParams
 from app.utils.password import encode_password
+from app.services.core.notification.email import email_service
+from app.schemas.common.email import EmailTemplateSchema
 
 
 def get_all_users(db: Session, query: BaseQueryParams | None = None):
@@ -16,19 +18,35 @@ def get_all_users(db: Session, query: BaseQueryParams | None = None):
         keyword=params.keyword,
     )
 
-def create_user(db: Session, user_in: UserCreate):
+
+async def create_user(db: Session, user_in: UserCreate):
     if repo.exists_email(db, user_in.email):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already exists"
-        )    
-    
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
+        )
+
     user_in.password = encode_password(user_in.password)
-    
+
     print(f"Data create user: {user_in}")
-    
+
     try:
         user = repo.create(db, user_in)
+
+        data = EmailTemplateSchema(
+            subject="Chuc mung dang ky thanh cong",
+            recipients=[user.email],
+            template_name="email/register_success.html",
+            context={
+                "fullname": user.fullname,
+                "username": user.username,
+                "password": user_in.password,
+            },
+        )
+
+        await email_service.send_template_email(
+            data=data,
+        )
+
         db.commit()
         return user
     except Exception:

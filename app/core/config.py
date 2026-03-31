@@ -27,6 +27,21 @@ class Settings:
 
     CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(", ")
 
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD")
+    MAIL_FROM: str = os.getenv("MAIL_FROM")
+    MAIL_PORT: int = os.getenv("MAIL_PORT")
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER")
+    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME")
+
+    # Configuration for fastapi-mail
+    MAIL_TLS: bool = os.getenv("MAIL_TLS")
+    MAIL_SSL: bool = os.getenv("MAIL_SSL")
+    USE_CREDENTIALS: bool = os.getenv("USE_CREDENTIALS")
+    VALIDATE_CERTS: bool = os.getenv("VALIDATE_CERTS")
+
+    TEMPLATE_DIR = os.path.join(os.getcwd(), "app/templates/")
+
     @property
     def database_url(self) -> str:
         return (
