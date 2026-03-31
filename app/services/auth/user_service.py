@@ -5,7 +5,7 @@ from app.db.repositories.auth import user_repository as repo
 from app.schemas.auth.user import UserCreate
 from app.schemas.common.query_params import BaseQueryParams
 from app.utils.password import encode_password
-from app.services.core.notification.email import email_service
+from app.services.core.notification.email_service import email_service
 from app.schemas.common.email import EmailTemplateSchema
 
 
@@ -25,6 +25,7 @@ async def create_user(db: Session, user_in: UserCreate):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
         )
 
+    raw_pwd = user_in.password
     user_in.password = encode_password(user_in.password)
 
     print(f"Data create user: {user_in}")
@@ -39,7 +40,7 @@ async def create_user(db: Session, user_in: UserCreate):
             context={
                 "fullname": user.fullname,
                 "username": user.username,
-                "password": user_in.password,
+                "password": raw_pwd,
             },
         )
 
