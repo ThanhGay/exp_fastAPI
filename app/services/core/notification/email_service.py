@@ -1,3 +1,4 @@
+import asyncio
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.schemas.common.email import EmailTextSchema, EmailTemplateSchema
@@ -51,7 +52,7 @@ class EmailService:
         template = self.env.get_template(template_name)
         return template.render(**context)
 
-    async def send_template_email(self, data: EmailTemplateSchema):
+    def send_template_email(self, data: EmailTemplateSchema):
         html_content = self.__render_template(data.template_name, data.context)
 
         message = MessageSchema(
@@ -61,7 +62,7 @@ class EmailService:
             subtype=MessageType.html,
         )
 
-        await self.fm.send_message(message)
+        asyncio.run(self.fm.send_message(message))
 
 
 email_service = EmailService()

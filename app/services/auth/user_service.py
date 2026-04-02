@@ -5,8 +5,8 @@ from app.db.repositories.auth import user_repository as repo
 from app.schemas.auth.user import UserCreate
 from app.schemas.common.query_params import BaseQueryParams
 from app.utils.password import encode_password
-from app.services.core.notification.email_service import email_service
 from app.schemas.common.email import EmailTemplateSchema
+from app.queue.tasks import send_template_email
 
 
 def get_all_users(db: Session, query: BaseQueryParams | None = None):
@@ -44,11 +44,12 @@ async def create_user(db: Session, user_in: UserCreate):
             },
         )
 
-        await email_service.send_template_email(
-            data=data,
-        )
-
+        # save user into database
         db.commit()
+
+        # then call send email in queue
+        result = send_template_email.delay(payload=data)
+        print(f"result when call MQ: {result}")
         return user
     except Exception:
         db.rollback()

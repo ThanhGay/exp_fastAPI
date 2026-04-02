@@ -17,6 +17,8 @@ from app.utils.password import (
     verify_password,
     generate_secure_password,
 )
+from app.schemas.common.email import EmailTemplateSchema
+from app.queue.tasks import send_template_email
 
 
 def login(db: Session, req: AuthLogin) -> AuthResponse:
@@ -176,7 +178,24 @@ def reset_password(db: Session, req: ResetPassword):
 
     try:
         result = repo.update_password(db=db, id=user.id, new_pwd=new_hashed_pwd)
+
+        data = EmailTemplateSchema(
+            subject="Mat khau cua ban da duoc dat lai",
+            recipients=[user.email],
+            template_name="email/reset_pwd.html",
+            context={
+                "fullname": user.fullname,
+                "username": user.username,
+                "email": user.email,
+                "password": new_pwd,
+            },
+        )
+
         db.commit()
+
+        dump = data.model_dump(mode="json")
+        send_template_email.delay(payload=dump)
+
     except Exception:
         db.rollback()
         raise
