@@ -38,17 +38,13 @@ class TablenameMixin:
     def is_deleted(cls):
         return Column(Boolean, nullable=False, default=False, server_default="0")
 
-    @declared_attr
-    def __tablename__(cls) -> str:
-        return cls.__name__.capitalize()
-
 
 # Cụm auth (User, Role, Permission...)
 metadata_auth = MetaData(schema=DbSchema.AUTH.value)
 
 
 class BaseAuth(TablenameMixin, DeclarativeBase):
-    # metadata=metadata_auth
+    metadata=metadata_auth
     pass
 
 
@@ -57,7 +53,7 @@ metadata_prod = MetaData(schema=DbSchema.PRODUCT.value)
 
 
 class BaseProd(TablenameMixin, DeclarativeBase):
-    # metadata=metadata_prod
+    metadata=metadata_prod
     pass
 
 
@@ -65,5 +61,5 @@ metadata_ord = MetaData(schema=DbSchema.ORDER.value)
 
 
 class BaseOrd(TablenameMixin, DeclarativeBase):
-    # metadata=metadata_ord
+    metadata=metadata_ord
     pass

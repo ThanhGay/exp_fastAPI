@@ -29,7 +29,7 @@ Open **http://127.0.0.1:8000/docs** for the interactive Swagger UI.
 
 Generate migration
 ```bash
-python -m alembic revision --autogenerate -m "<migration_name>"
+python -m alembic revision -m "<migration_name>"
 ```
 
 Apply migration into database

@@ -48,8 +48,8 @@ async def create_user(db: Session, user_in: UserCreate):
         db.commit()
 
         # then call send email in queue
-        result = send_template_email.delay(payload=data)
-        print(f"result when call MQ: {result}")
+        send_template_email.delay(payload=data.model_dump())
+
         return user
     except Exception:
         db.rollback()

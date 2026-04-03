@@ -1,7 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool, MetaData
 
 from alembic import context
 
@@ -24,7 +23,10 @@ from app.db.models.base import BaseAuth, BaseProd, BaseOrd
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = [BaseAuth.metadata, BaseProd.metadata, BaseOrd.metadata]
+target_metadata = MetaData()
+for base in [BaseAuth, BaseProd, BaseOrd]:
+    for table in base.metadata.tables.values():
+        table.tometadata(target_metadata)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

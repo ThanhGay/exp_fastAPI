@@ -15,8 +15,6 @@ class Order(BaseOrd):
 
 
 class OrderItem(BaseOrd):
-    __tablename__ = "OrderItem"
-
     order_id = Column(Integer, nullable=False)
     product_id = Column(Integer, nullable=False)
     count = Column(Integer)

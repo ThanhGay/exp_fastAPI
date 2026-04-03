@@ -1,36 +1,20 @@
 from app.db.models.base import BaseAuth
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Text,
-    Table,
-    ForeignKey,
-    DateTime,
-)
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
+
 
 # User N - N Role
-UserRole = Table(
-    "UserRole",
-    BaseAuth.metadata,
-    Column("user_id", ForeignKey("User.id"), primary_key=True),
-    Column("role_id", ForeignKey("Role.id"), primary_key=True),
-)
+class UserAssignment(BaseAuth):
+    user_id = Column(Integer)
+    role_id = Column(Integer)
 
 
 # Role N - N Permission
-RolePermisison = Table(
-    "RolePermission",
-    BaseAuth.metadata,
-    Column("role_id", ForeignKey("Role.id"), primary_key=True),
-    Column("permission_id", ForeignKey("Permission.id"), primary_key=True),
-)
+class PermissionAssignment(BaseAuth):
+    role_id = Column(Integer)
+    permission_id = Column(Integer)
 
 
 class User(BaseAuth):
-    __tablename__ = "User"
-
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), nullable=False)
     first_name = Column(Text)
@@ -50,19 +34,12 @@ class User(BaseAuth):
 
 
 class Role(BaseAuth):
-    __tablename__ = "Role"
-
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)
-
-    users = relationship("User", secondary=UserRole, back_populates="roles")
-    permissions = relationship(
-        "Permission", secondary=RolePermisison, back_populates="roles"
-    )
+    is_active = Column(Boolean, default=False)
 
 
 class Permission(BaseAuth):
-    __tablename__ = "Permission"
     id = Column(Integer, primary_key=True)
     code = Column(String(150), unique=True, nullable=False)
     description = Column(Text)
@@ -71,8 +48,6 @@ class Permission(BaseAuth):
 
 
 class TokenManagement(BaseAuth):
-    __tablename__ = "RefreshToken"
-
     jti = Column(String(36), nullable=False, index=True)
     user_id = Column(Integer, index=True)
     expire_at = Column(DateTime)
