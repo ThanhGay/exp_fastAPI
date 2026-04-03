@@ -32,6 +32,6 @@ class AssignRoleToUser(BaseModel):
     role_id: int
 
 
-class AssignPermToRole(BaseModel):
+class AssignPermissionToRole(BaseModel):
     role_id: int
-    permission_id: int
+    permission_ids: list[int]

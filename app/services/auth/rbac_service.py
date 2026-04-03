@@ -3,9 +3,11 @@ from fastapi import HTTPException, status
 from app.db.repositories.auth import role_repository as repo
 from app.schemas.auth.rbac import (
     RoleCreate,
+    RoleView,
     PermissionCreate,
+    PermissionView,
     AssignRoleToUser,
-    AssignPermToRole,
+    AssignPermissionToRole,
 )
 
 
@@ -31,33 +33,61 @@ def create_permission(db: Session, data: PermissionCreate):
 
 def assign_role_to_user(db: Session, data: AssignRoleToUser):
     try:
-        user = repo.assign_role_to_user(db, data.user_id, data.role_id)
+        user = repo.add_role_to_user(db=db, user_id=data.user_id, role__id=data.role_id)
         if user:
             db.commit()
     except Exception:
         db.rollback()
         raise
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User or Role not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User or Role not found"
+        )
     return user
 
 
-def assign_perm_to_role(db: Session, data: AssignPermToRole):
+def assign_permission_to_role(db: Session, data: AssignPermissionToRole):
     try:
-        role = repo.assign_permission_to_role(db, data.role_id, data.permission_id)
-        if role:
-            db.commit()
+        # Validate role
+        role = repo.get_role_by_id(db, data.role_id)
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Role not found"
+            )
+
+        # Validate permissions
+        permissions = repo.get_permissions_by_ids(db, data.permission_ids)
+
+        if len(permissions) != len(data.permission_ids):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or more permissions not found",
+            )
+
+        # Assign permissions (bulk)
+        role = repo.add_permissions_to_role(
+            db=db, role_id=data.role_id, permission_ids=data.permission_ids
+        )
+
+        db.commit()
+        return role
     except Exception:
         db.rollback()
         raise
-    if not role:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role or Permission not found")
-    return role
 
 
 def list_roles(db: Session):
-    return repo.list_roles(db)
+    data = repo.list_roles(db)
+
+    if not data:
+        return []
+
+    result: list[RoleView] = []
+    for r in data:
+        result.append(RoleView(id=r.id, name=r.name))
+
+    return result
 
 
-def list_permissions(db: Session):
+def list_permissions(db: Session) -> list[PermissionView]:
     return repo.list_permissions(db)

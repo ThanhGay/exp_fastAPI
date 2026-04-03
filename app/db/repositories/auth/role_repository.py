@@ -1,5 +1,10 @@
 from sqlalchemy.orm import Session
-from app.db.models.auth import Role, Permission, User
+from app.db.models.auth import (
+    Role,
+    Permission,
+    UserAssignment,
+    PermissionAssignment,
+)
 
 
 def create_role(db: Session, name: str) -> Role:
@@ -10,40 +15,18 @@ def create_role(db: Session, name: str) -> Role:
 
 
 def create_permission(db: Session, code: str, description: str | None) -> Permission:
-    perm = Permission(code=code, description=description)
-    db.add(perm)
+    permission = Permission(code=code, description=description)
+    db.add(permission)
     db.flush()
-    return perm
+    return permission
 
 
-def get_role(db: Session, role_id: int) -> Role | None:
+def get_role_by_id(db: Session, role_id: int) -> Role | None:
     return db.query(Role).filter(Role.id == role_id).first()
 
 
-def get_permission(db: Session, perm_id: int) -> Permission | None:
+def get_permission_by_id(db: Session, perm_id: int) -> Permission | None:
     return db.query(Permission).filter(Permission.id == perm_id).first()
-
-
-def assign_role_to_user(db: Session, user_id: int, role_id: int) -> User:
-    user = db.query(User).filter(User.id == user_id).first()
-    role = db.query(Role).filter(Role.id == role_id).first()
-    if not user or not role:
-        return None
-    if role not in user.roles:
-        user.roles.append(role)
-        db.flush()
-    return user
-
-
-def assign_permission_to_role(db: Session, role_id: int, perm_id: int) -> Role:
-    role = db.query(Role).filter(Role.id == role_id).first()
-    perm = db.query(Permission).filter(Permission.id == perm_id).first()
-    if not role or not perm:
-        return None
-    if perm not in role.permissions:
-        role.permissions.append(perm)
-        db.flush()
-    return role
 
 
 def list_roles(db: Session) -> list[Role]:
@@ -52,3 +35,19 @@ def list_roles(db: Session) -> list[Role]:
 
 def list_permissions(db: Session) -> list[Permission]:
     return db.query(Permission).all()
+
+
+def add_role_to_user(db: Session, user_id: int, role__id: int) -> UserAssignment:
+    new_user_role = UserAssignment(user_id=user_id, role__id=role__id)
+    db.add(new_user_role)
+    db.flush()
+    return new_user_role
+
+
+def add_permission_to_role(
+    db: Session, role_id: int, permission_id: int
+) -> PermissionAssignment:
+    new_role_per = PermissionAssignment(role_id=role_id, permission_id=permission_id)
+    db.add(new_role_per)
+    db.flush
+    return new_role_per

@@ -6,6 +6,7 @@ from app.api.v1.routes import (
     auth_router,
     cart_router,
     order_router,
+    rbac_router
 )
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
@@ -16,3 +17,4 @@ router.include_router(files_router)
 router.include_router(users_router)
 router.include_router(cart_router)
 router.include_router(order_router)
+router.include_router(rbac_router)
