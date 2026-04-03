@@ -15,18 +15,14 @@ if config.config_file_name is not None:
 
 
 from app.core.config import settings
-from app.core.database import engine
-from app.db.models.base import BaseAuth, BaseProd, BaseOrd
+from app.db.models.base import Base
 
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = MetaData()
-for base in [BaseAuth, BaseProd, BaseOrd]:
-    for table in base.metadata.tables.values():
-        table.tometadata(target_metadata)
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

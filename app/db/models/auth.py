@@ -23,8 +23,6 @@ class User(BaseAuth):
     password = Column(Text)
     status = Column(Integer)
 
-    roles = relationship("Role", secondary=UserRole, back_populates="users")
-
     @property
     def fullname(self) -> str:
         first = self.first_name or ""
@@ -43,8 +41,6 @@ class Permission(BaseAuth):
     id = Column(Integer, primary_key=True)
     code = Column(String(150), unique=True, nullable=False)
     description = Column(Text)
-
-    roles = relationship("Role", secondary=RolePermisison, back_populates="permissions")
 
 
 class TokenManagement(BaseAuth):
